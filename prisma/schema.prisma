@@ -1,0 +1,84 @@
+// CheckMyLuck.com - Production-ready PostgreSQL schema
+// For local dev: Use Neon/Supabase free tier or Docker PostgreSQL
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Group {
+  id          String   @id @default(cuid())
+  name        String   // e.g. "iPhone Draw - Mar 8"
+  maxMembers  Int      @default(500)
+  entryFee    Int      @default(250) // rupees
+  status      GroupStatus @default(OPEN)
+  closesAt    DateTime // 7PM daily
+  createdAt   DateTime @default(now())
+  drawDoneAt  DateTime?
+  winnerId    String?
+  winner      Member?  @relation("Winner", fields: [winnerId], references: [id])
+
+  members     Member[]
+  payments    Payment[]
+
+  @@index([status, closesAt])
+  @@index([createdAt])
+}
+
+enum GroupStatus {
+  OPEN      // Accepting members
+  FULL      // 500 reached
+  CLOSED    // 7PM passed
+  DRAW_DONE // Winner selected
+}
+
+model Member {
+  id            String   @id @default(cuid())
+  groupId       String
+  group         Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  mobileNumber  String
+  displayName   String?  // Optional name shown for winners
+  address       String   @db.Text
+  bidCount      Int      @default(1) // 1-10
+  totalAmount   Int      // bidCount * entryFee
+  paymentStatus PaymentStatus @default(PENDING)
+  joinedAt      DateTime @default(now())
+
+  payments      Payment[]
+  wonGroups     Group[]  @relation("Winner")
+
+  @@unique([groupId, mobileNumber])
+  @@index([groupId])
+  @@index([mobileNumber])
+  @@index([paymentStatus])
+}
+
+enum PaymentStatus {
+  PENDING
+  CONFIRMED
+  REJECTED
+}
+
+model Payment {
+  id            String   @id @default(cuid())
+  memberId      String
+  member        Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  groupId       String
+  group         Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  amount        Int
+  status        PaymentStatus @default(PENDING)
+  referenceId   String?  // UPI ref / transaction ID
+  proofUrl      String?  // Screenshot URL if uploaded
+  confirmedAt   DateTime?
+  confirmedBy   String?
+  createdAt     DateTime @default(now())
+
+  @@index([memberId])
+  @@index([groupId])
+  @@index([status])
+  @@index([createdAt])
+}

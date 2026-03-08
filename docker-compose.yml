@@ -1,0 +1,18 @@
+# Optional: Run PostgreSQL locally for development
+# Usage: docker compose up -d
+# Uses port 5433 to avoid conflict with other PostgreSQL on 5432
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: checkmyluck
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
