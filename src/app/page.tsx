@@ -8,18 +8,10 @@ export default function Home() {
     <div className="min-h-screen bg-zinc-50 text-zinc-900">
       {/* Header - minimal, Wibify-style */}
       <header className="sticky top-0 z-20 border-b border-zinc-200 bg-white/95 backdrop-blur">
-        <div className="mx-auto flex max-w-2xl items-center justify-between px-4 py-3 sm:px-6 md:max-w-4xl lg:max-w-6xl">
+        <div className="mx-auto flex max-w-2xl items-center justify-center px-4 py-3 sm:px-6 md:max-w-4xl lg:max-w-6xl">
           <Link href="/" className="text-lg font-semibold tracking-tight text-zinc-900">
             CheckMyLuck
           </Link>
-          <nav className="flex items-center gap-4">
-            <Link
-              href="/admin"
-              className="text-sm text-zinc-500 transition hover:text-zinc-900"
-            >
-              Admin
-            </Link>
-          </nav>
         </div>
       </header>
 
