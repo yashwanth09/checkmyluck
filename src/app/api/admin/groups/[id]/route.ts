@@ -4,7 +4,7 @@ import { isAdmin } from "@/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(
+export async function DELETE(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -13,21 +13,15 @@ export async function GET(
   }
   try {
     const { id } = await params;
-    const members = await prisma.member.findMany({
-      where: { groupId: id },
-      orderBy: { joinedAt: "desc" },
-    });
-
-    return NextResponse.json(
-      members.map((m) => ({
-        ...m,
-        joinedAt: m.joinedAt.toISOString(),
-      }))
-    );
+    // Delete in order: payments → members → group (handles DBs without FK cascade)
+    await prisma.payment.deleteMany({ where: { groupId: id } });
+    await prisma.member.deleteMany({ where: { groupId: id } });
+    await prisma.group.delete({ where: { id } });
+    return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("GET /api/admin/groups/[id]/members:", error);
+    console.error("DELETE /api/admin/groups/[id]:", error);
     return NextResponse.json(
-      { error: "Failed to fetch members" },
+      { error: "Failed to delete group" },
       { status: 500 }
     );
   }

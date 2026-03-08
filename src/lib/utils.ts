@@ -25,6 +25,8 @@ export function getStatusBadgeColor(status: GroupStatus): string {
       return "bg-amber-100 text-amber-700";
     case "CLOSED":
       return "bg-zinc-200 text-zinc-600";
+    case "CANCELLED":
+      return "bg-amber-100 text-amber-700";
     case "DRAW_DONE":
       return "bg-violet-100 text-violet-700";
     default:
@@ -40,6 +42,8 @@ export function getStatusLabel(status: GroupStatus): string {
       return "Full";
     case "CLOSED":
       return "Closed";
+    case "CANCELLED":
+      return "Cancelled (refund)";
     case "DRAW_DONE":
       return "Draw Complete";
     default:

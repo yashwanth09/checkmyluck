@@ -5,6 +5,12 @@ import Link from "next/link";
 import { formatRupees, formatDateTime, getStatusBadgeColor, getStatusLabel } from "@/lib/utils";
 import type { GroupStatus } from "@prisma/client";
 
+type RecentJoin = {
+  displayName: string;
+  joinedAt: string;
+  bidCount: number;
+};
+
 type Group = {
   id: string;
   name: string;
@@ -14,6 +20,7 @@ type Group = {
   closesAt: string;
   memberCount: number;
   slotsLeft: number;
+  recentJoins?: RecentJoin[];
 };
 
 export function GroupsList() {
@@ -31,6 +38,18 @@ export function GroupsList() {
       .catch(() => setError("Failed to load groups"))
       .finally(() => setLoading(false));
   }, []);
+
+  const formatRecentTime = (iso: string) => {
+    const d = new Date(iso);
+    const now = new Date();
+    const diffMs = now.getTime() - d.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    if (diffMins < 1) return "just now";
+    if (diffMins < 60) return `${diffMins}m ago`;
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `${diffHours}h ago`;
+    return d.toLocaleDateString();
+  };
 
   const formatTimeLeft = (closesAt: string) => {
     const end = new Date(closesAt).getTime();
@@ -107,6 +126,22 @@ export function GroupsList() {
                   }}
                 />
               </div>
+              {g.recentJoins && g.recentJoins.length > 0 && (
+                <div className="mt-3 border-t border-zinc-100 pt-3">
+                  <p className="text-xs font-medium text-zinc-500">Recent joins</p>
+                  <ul className="mt-1 space-y-0.5 text-xs text-zinc-600">
+                    {g.recentJoins.map((j, i) => (
+                      <li key={i}>
+                        <span className="font-medium text-zinc-800">{j.displayName}</span>
+                        {" added with "}
+                        <span className="font-medium text-zinc-800">{j.bidCount ?? 1}</span>
+                        {j.bidCount === 1 ? " bid " : " bids "}
+                        <span className="text-zinc-500">{formatRecentTime(j.joinedAt)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
             <div className="shrink-0 text-right">
               <p className="text-xs uppercase tracking-widest text-zinc-500">

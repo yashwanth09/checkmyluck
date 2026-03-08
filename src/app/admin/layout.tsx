@@ -56,8 +56,10 @@ export default function AdminLayout({
 
   const nav = [
     { href: "/admin", label: "Dashboard" },
+    { href: "/admin/analytics", label: "Analytics" },
     { href: "/admin/groups", label: "Groups" },
     { href: "/admin/payments", label: "Payments" },
+    { href: "/admin/refunds", label: "Refunds" },
   ];
 
   return (
@@ -65,7 +67,7 @@ export default function AdminLayout({
       <header className="sticky top-0 z-10 border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
         <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-3">
           <h1 className="font-semibold text-violet-600 dark:text-violet-400">
-            CheckMyLuck Admin
+            BingoBids Admin
           </h1>
           <nav className="flex gap-4">
             {nav.map((n) => (

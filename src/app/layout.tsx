@@ -9,7 +9,7 @@ const montserrat = Montserrat({
 });
 
 export const metadata: Metadata = {
-  title: "CheckMyLuck.com - Win an iPhone!",
+  title: "BingoBids - Win an iPhone!",
   description:
     "Join our lucky draw groups. Pay ₹250 per bid, 500 members per group. One lucky winner gets an iPhone!",
 };

@@ -1,4 +1,4 @@
-// CheckMyLuck.com - Production-ready PostgreSQL schema
+// BingoBids - Production-ready PostgreSQL schema
 // For local dev: Use Neon/Supabase free tier or Docker PostgreSQL
 
 generator client {
@@ -31,8 +31,9 @@ model Group {
 
 enum GroupStatus {
   OPEN      // Accepting members
-  FULL      // 500 reached
-  CLOSED    // 7PM passed
+  FULL      // maxMembers reached
+  CLOSED    // 7PM passed, full — draw will be done
+  CANCELLED // 7PM passed, not full — refund everyone
   DRAW_DONE // Winner selected
 }
 
@@ -72,6 +73,7 @@ model Payment {
   amount        Int
   status        PaymentStatus @default(PENDING)
   referenceId   String?  // UPI ref / transaction ID
+  payerUpiId    String?  // Payer's UPI (from bank/app when you receive) — use for refunds
   proofUrl      String?  // Screenshot URL if uploaded
   confirmedAt   DateTime?
   confirmedBy   String?

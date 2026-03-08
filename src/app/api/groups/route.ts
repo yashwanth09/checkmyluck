@@ -15,6 +15,11 @@ export async function GET() {
       },
       include: {
         _count: { select: { members: true } },
+        members: {
+          take: 5,
+          orderBy: { joinedAt: "desc" },
+          select: { displayName: true, joinedAt: true, bidCount: true },
+        },
       },
       orderBy: { closesAt: "asc" },
     });
@@ -29,6 +34,11 @@ export async function GET() {
         closesAt: g.closesAt.toISOString(),
         memberCount: g._count.members,
         slotsLeft: g.maxMembers - g._count.members,
+        recentJoins: g.members.map((m) => ({
+          displayName: m.displayName?.trim() || "A member",
+          joinedAt: m.joinedAt.toISOString(),
+          bidCount: m.bidCount,
+        })),
       }))
     );
   } catch (error) {

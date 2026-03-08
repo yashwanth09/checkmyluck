@@ -1,12 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { ADMIN_SECRET } from "@/lib/constants";
+import { isAdmin } from "@/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
-
-function isAdmin(req: Request): boolean {
-  return req.headers.get("x-admin-secret") === ADMIN_SECRET;
-}
 
 export async function POST(
   req: Request,
@@ -33,6 +29,12 @@ export async function POST(
       );
     }
 
+    const body = await req.json().catch(() => ({}));
+    const payerUpiId =
+      typeof body.payerUpiId === "string" && body.payerUpiId.trim()
+        ? body.payerUpiId.trim()
+        : null;
+
     await prisma.$transaction([
       prisma.payment.update({
         where: { id },
@@ -40,6 +42,7 @@ export async function POST(
           status: "CONFIRMED",
           confirmedAt: new Date(),
           confirmedBy: "admin",
+          ...(payerUpiId && { payerUpiId }),
         },
       }),
       prisma.member.update({

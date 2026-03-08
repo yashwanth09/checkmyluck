@@ -1,4 +1,4 @@
-# CheckMyLuck.com
+# BingoBids
 
 Lucky draw platform — join groups, bid for a chance to win an iPhone. 500 members per group, ₹250 per bid, one winner per group.
 
@@ -27,7 +27,7 @@ cp .env.example .env
 ```
 
 - **UPI_VPA**: Your UPI ID (e.g. `9876543210@paytm` or `name@okaxis`) — payments go here when users scan the QR.
-- **UPI_PAYEE_NAME**: Name shown in the user’s UPI app (e.g. `CheckMyLuck`).
+- **UPI_PAYEE_NAME**: Name shown in the user’s UPI app (e.g. `BingoBids`).
 
 ### 3. Install & Setup
 
@@ -73,7 +73,8 @@ npm run dev
 ## Payments
 
 - **Current (UPI QR):** Set `UPI_VPA` and `UPI_PAYEE_NAME` in `.env`. The payment QR is a **real UPI QR** — when users scan with GPay/PhonePe/Paytm, amount and reference are pre-filled and money goes to your UPI. You still **confirm** each payment in Admin → Payments after you see the credit.
-- **Production / auto-verify:** For automatic confirmation (no manual “Confirm”), integrate **Razorpay** ([razorpay.com](https://razorpay.com)): create a Payment Link or Order via API, redirect user to Razorpay checkout (or show their QR), and use the **webhook** (`payment.captured`) to mark the payment confirmed in your DB. This gives you a dashboard, refunds, and compliance. Fees are typically ~2% per transaction.
+- **Refunds:** When a group is **cancelled** (didn’t fill by 7 PM), go to **Admin → Refunds**. You’ll see every member who had a confirmed payment and the amount to refund. Use **Export CSV** and refund each person manually via UPI or bank. For automatic refunds you’d need a gateway like Razorpay.
+- **Production / auto-verify:** For automatic confirmation (no manual “Confirm”), integrate **Razorpay** ([razorpay.com](https://razorpay.com)): create a Payment Link or Order via API, redirect user to Razorpay checkout (or show their QR), and use the **webhook** (`payment.captured`) to mark the payment confirmed in your DB. Razorpay also supports **refund API** so you can refund programmatically when a group is cancelled. Fees are typically ~2% per transaction.
 
 ## Going Live
 

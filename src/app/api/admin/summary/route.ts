@@ -1,12 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { ADMIN_SECRET } from "@/lib/constants";
+import { isAdmin } from "@/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
-
-function isAdmin(req: Request): boolean {
-  return req.headers.get("x-admin-secret") === ADMIN_SECRET;
-}
 
 export async function GET(req: Request) {
   if (!isAdmin(req)) {

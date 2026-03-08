@@ -43,7 +43,7 @@ export function PaymentQR({
           Payment confirmed
         </h3>
         <p className="mt-2 text-sm text-zinc-600">
-          You&apos;re now entered into this iPhone draw. Good luck!
+          You&apos;re now entered into this iPhone (17 <span className="text-[0.85em]">256 GB</span>) draw. Good luck!
         </p>
         <button
           onClick={onBack}
@@ -90,7 +90,7 @@ export function PaymentQR({
 
         <p className="mt-4 text-center text-xs text-zinc-500">
           Scan with GPay, PhonePe or Paytm. Amount and reference are
-          pre-filled. Money goes to CheckMyLuck — admin will confirm shortly.
+          pre-filled. Money goes to BingoBids — admin will confirm shortly.
         </p>
       </div>
 

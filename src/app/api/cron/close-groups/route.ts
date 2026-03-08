@@ -4,8 +4,9 @@ import { GroupStatus } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
-// Call this via cron at 7:01 PM daily (e.g. Vercel Cron, GitHub Actions)
-// Or run: curl -H "Authorization: Bearer YOUR_CRON_SECRET" /api/cron/close-groups
+// Call this via cron at 7:01 PM daily. Closes due groups:
+// - Full (memberCount >= maxMembers) → CLOSED (eligible for draw)
+// - Not full → CANCELLED (refund everyone; no draw)
 export async function GET(req: Request) {
   const auth = req.headers.get("authorization");
   const cronSecret = process.env.CRON_SECRET;
@@ -15,17 +16,30 @@ export async function GET(req: Request) {
 
   try {
     const now = new Date();
-    const result = await prisma.group.updateMany({
+    const due = await prisma.group.findMany({
       where: {
-        status: GroupStatus.OPEN,
+        status: { in: [GroupStatus.OPEN, GroupStatus.FULL] },
         closesAt: { lte: now },
       },
-      data: { status: GroupStatus.CLOSED },
+      include: { _count: { select: { members: true } } },
     });
+
+    let closed = 0;
+    let cancelled = 0;
+    for (const g of due) {
+      const full = g._count.members >= g.maxMembers;
+      await prisma.group.update({
+        where: { id: g.id },
+        data: { status: full ? GroupStatus.CLOSED : GroupStatus.CANCELLED },
+      });
+      if (full) closed++;
+      else cancelled++;
+    }
 
     return NextResponse.json({
       success: true,
-      closed: result.count,
+      closed,
+      cancelled,
     });
   } catch (error) {
     console.error("Cron close-groups:", error);

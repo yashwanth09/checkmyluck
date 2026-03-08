@@ -1,11 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { GroupStatus } from "@prisma/client";
-import {
-  MAX_BIDS_PER_MEMBER,
-  MAX_MEMBERS_PER_GROUP,
-  ENTRY_FEE,
-} from "@/lib/constants";
+import { MAX_BIDS_PER_MEMBER, ENTRY_FEE } from "@/lib/constants";
 import { v4 as uuidv4 } from "uuid";
 
 export const dynamic = "force-dynamic";
@@ -60,13 +56,14 @@ export async function POST(req: Request) {
       );
     }
 
-    if (group._count.members >= MAX_MEMBERS_PER_GROUP) {
+    if (group._count.members >= group.maxMembers) {
       return NextResponse.json(
         { error: "Group is full" },
         { status: 400 }
       );
     }
 
+    // Max bids per person (by mobile in this group)
     const existing = await prisma.member.findUnique({
       where: {
         groupId_mobileNumber: { groupId, mobileNumber: mobile },

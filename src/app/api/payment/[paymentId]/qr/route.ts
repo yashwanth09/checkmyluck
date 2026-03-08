@@ -19,7 +19,7 @@ export async function GET(
     }
 
     const vpa = process.env.UPI_VPA?.trim();
-    const name = process.env.UPI_PAYEE_NAME?.trim() || "CheckMyLuck";
+    const name = process.env.UPI_PAYEE_NAME?.trim() || "BingoBids";
 
     if (!vpa) {
       return NextResponse.json(

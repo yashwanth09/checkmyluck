@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAdminSecret } from "@/lib/admin-context";
 import { formatRupees, formatDateTime, getStatusBadgeColor, getStatusLabel } from "@/lib/utils";
@@ -27,11 +27,13 @@ type Group = {
 
 export default function AdminGroupDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const id = params.id as string;
   const secret = useAdminSecret();
   const [group, setGroup] = useState<Group | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (!secret || !id) return;
@@ -55,18 +57,31 @@ export default function AdminGroupDetailPage() {
   }
 
   const confirmed = members.filter((m) => m.paymentStatus === "CONFIRMED");
-  const pending = members.filter((m) => m.paymentStatus === "PENDING");
+
+  const handleDelete = async () => {
+    if (!confirm(`Delete "${group.name}"? This will remove all members and payments.`)) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/admin/groups/${id}`, {
+        method: "DELETE",
+        headers: { "x-admin-secret": secret },
+      });
+      if (res.ok) router.push("/admin/groups");
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
+      <div className="flex flex-wrap items-center gap-4">
         <Link
           href="/admin/groups"
           className="text-violet-600 hover:text-violet-700 dark:text-violet-400"
         >
           ← Back
         </Link>
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
             {group.name}
           </h2>
@@ -81,6 +96,14 @@ export default function AdminGroupDetailPage() {
             </span>
           </div>
         </div>
+        <button
+          type="button"
+          onClick={handleDelete}
+          disabled={deleting}
+          className="rounded-lg border border-red-200 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/30 disabled:opacity-50"
+        >
+          {deleting ? "Deleting..." : "Delete group"}
+        </button>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">

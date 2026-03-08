@@ -24,7 +24,15 @@ export default async function JoinPage({
       </header>
 
       <main className="mx-auto max-w-2xl px-4 py-8 pb-12 sm:px-6 md:max-w-4xl lg:max-w-6xl">
-        <div className="mx-auto max-w-xl">
+        <div className="mx-auto max-w-xl space-y-6">
+          <div className="rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 px-5 py-4 text-white shadow-lg ring-1 ring-white/20">
+            <p className="text-center text-sm font-semibold">
+              🏆 Win → iPhone <span className="text-white/80 text-xs">(17 <span className="text-[0.7em]">256 GB</span>)</span> &nbsp; &nbsp; or &nbsp; &nbsp; 💰 Refund
+            </p>
+            <p className="mt-1 text-center text-xs text-white/90">
+              No risk. Your money back if the group doesn’t fill.
+            </p>
+          </div>
           <JoinForm groupId={groupId} />
         </div>
       </main>

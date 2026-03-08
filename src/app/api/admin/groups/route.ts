@@ -8,14 +8,9 @@ import {
   GROUP_CLOSE_HOUR,
   GROUP_CLOSE_MINUTE,
 } from "@/lib/constants";
-import { ADMIN_SECRET } from "@/lib/constants";
+import { isAdmin } from "@/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
-
-function isAdmin(req: Request): boolean {
-  const secret = req.headers.get("x-admin-secret");
-  return secret === ADMIN_SECRET;
-}
 
 export async function GET(req: Request) {
   if (!isAdmin(req)) {
@@ -54,11 +49,12 @@ export async function GET(req: Request) {
       id: g.id,
       name: g.name,
       status: g.status,
+      maxMembers: g.maxMembers,
       closesAt: g.closesAt.toISOString(),
       createdAt: g.createdAt.toISOString(),
       memberCount: g._count.members,
       totalCollection: g.payments.reduce((s, p) => s + p.amount, 0),
-      slotsLeft: MAX_MEMBERS_PER_GROUP - g._count.members,
+      slotsLeft: g.maxMembers - g._count.members,
     }));
 
     return NextResponse.json(withStats);
@@ -77,11 +73,22 @@ export async function POST(req: Request) {
   }
   try {
     const body = await req.json();
-    const { name } = body;
+    const { name, maxMembers: rawSlots } = body;
 
     if (!name || typeof name !== "string" || name.trim().length < 3) {
       return NextResponse.json(
         { error: "Group name required (min 3 chars)" },
+        { status: 400 }
+      );
+    }
+
+    const maxMembers =
+      rawSlots != null && Number.isFinite(Number(rawSlots))
+        ? Math.round(Number(rawSlots))
+        : MAX_MEMBERS_PER_GROUP;
+    if (maxMembers < 10 || maxMembers > 10000) {
+      return NextResponse.json(
+        { error: "Slots must be between 10 and 10000" },
         { status: 400 }
       );
     }
@@ -111,7 +118,7 @@ export async function POST(req: Request) {
     const group = await prisma.group.create({
       data: {
         name: name.trim(),
-        maxMembers: MAX_MEMBERS_PER_GROUP,
+        maxMembers,
         entryFee: ENTRY_FEE,
         closesAt,
       },

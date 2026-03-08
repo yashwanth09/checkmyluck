@@ -9,6 +9,7 @@ type Payment = {
   amount: number;
   status: string;
   referenceId: string | null;
+  payerUpiId: string | null;
   createdAt: string;
   member: { mobileNumber: string; bidCount: number };
   group: { name: string };
@@ -32,6 +33,7 @@ export default function AdminPaymentsPage() {
   );
   const [loading, setLoading] = useState(true);
   const [confirming, setConfirming] = useState<string | null>(null);
+  const [payerUpiFor, setPayerUpiFor] = useState<Record<string, string>>({});
 
   const fetchPayments = () => {
     fetch(`/api/admin/payments?date=${date}`, {
@@ -53,12 +55,20 @@ export default function AdminPaymentsPage() {
 
   const handleConfirm = async (paymentId: string) => {
     setConfirming(paymentId);
+    const payerUpiId = payerUpiFor[paymentId]?.trim() || undefined;
     try {
       const res = await fetch(`/api/admin/payments/${paymentId}/confirm`, {
         method: "POST",
-        headers: { "x-admin-secret": secret },
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-secret": secret,
+        },
+        body: JSON.stringify({ payerUpiId: payerUpiId || null }),
       });
-      if (res.ok) fetchPayments();
+      if (res.ok) {
+        setPayerUpiFor((prev) => ({ ...prev, [paymentId]: "" }));
+        fetchPayments();
+      }
     } finally {
       setConfirming(null);
     }
@@ -124,7 +134,7 @@ export default function AdminPaymentsPage() {
                 key={p.id}
                 className="flex flex-wrap items-center justify-between gap-4 px-4 py-3 sm:flex-nowrap"
               >
-                <div>
+                <div className="min-w-0 flex-1">
                   <p className="font-mono text-slate-900 dark:text-white">
                     {p.member.mobileNumber}
                   </p>
@@ -132,8 +142,17 @@ export default function AdminPaymentsPage() {
                     {p.group.name} • {p.member.bidCount} bid(s) • Ref:{" "}
                     {p.referenceId}
                   </p>
+                  <input
+                    type="text"
+                    placeholder="Payer UPI (from bank/app — for refunds)"
+                    value={payerUpiFor[p.id] ?? ""}
+                    onChange={(e) =>
+                      setPayerUpiFor((prev) => ({ ...prev, [p.id]: e.target.value }))
+                    }
+                    className="mt-2 w-full max-w-xs rounded border border-slate-300 px-2 py-1 text-xs font-mono dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+                  />
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex shrink-0 items-center gap-3">
                   <span className="font-semibold">
                     {formatRupees(p.amount)}
                   </span>
