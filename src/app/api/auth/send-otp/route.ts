@@ -37,8 +37,50 @@ export async function POST(req: Request) {
       },
     });
 
-    // TODO: Integrate real SMS provider here. For now, log in server.
-    console.log("OTP for", phone, "is", code);
+    // In development, log OTP for easy testing.
+    if (process.env.NODE_ENV !== "production") {
+      console.log("OTP for", phone, "is", code);
+      return NextResponse.json({ success: true });
+    }
+
+    // In production, send OTP via MSG91 Flow API.
+    const authKey = process.env.MSG91_AUTH_KEY;
+    const templateId = process.env.MSG91_TEMPLATE_ID;
+    const senderId = process.env.MSG91_SENDER_ID;
+    const otpVarName = process.env.MSG91_OTP_VAR_NAME || "otp";
+
+    if (!authKey || !templateId || !senderId) {
+      console.error("MSG91 env vars missing");
+      return NextResponse.json(
+        { error: "OTP service not configured" },
+        { status: 500 }
+      );
+    }
+
+    const payload: Record<string, unknown> = {
+      template_id: templateId,
+      sender: senderId,
+      mobiles: `91${phone}`,
+    };
+    payload[otpVarName] = code;
+
+    const resp = await fetch("https://api.msg91.com/api/v5/flow/", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        authkey: authKey,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!resp.ok) {
+      const text = await resp.text().catch(() => "");
+      console.error("MSG91 send error", resp.status, text);
+      return NextResponse.json(
+        { error: "Failed to send OTP" },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {
