@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/auth";
+import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
