@@ -10,11 +10,13 @@ import type { GroupStatus } from "@prisma/client";
 type Member = {
   id: string;
   mobileNumber: string;
+  displayName?: string | null;
   address: string;
   bidCount: number;
   totalAmount: number;
   paymentStatus: string;
   joinedAt: string;
+  isBot?: boolean;
 };
 
 type Group = {
@@ -23,6 +25,7 @@ type Group = {
   status: GroupStatus;
   closesAt: string;
   memberCount?: number;
+  maxMembers?: number;
 };
 
 export default function AdminGroupDetailPage() {
@@ -34,6 +37,8 @@ export default function AdminGroupDetailPage() {
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
+  const [botCount, setBotCount] = useState(1);
+  const [addingBots, setAddingBots] = useState(false);
 
   useEffect(() => {
     if (!secret || !id) return;
@@ -57,6 +62,65 @@ export default function AdminGroupDetailPage() {
   }
 
   const confirmed = members.filter((m) => m.paymentStatus === "CONFIRMED");
+  const isOpen = group?.status === "OPEN" || group?.status === "FULL";
+  const slotsLeft = group ? (group.maxMembers ?? 10) - members.length : 0;
+
+  const fetchData = () => {
+    if (!id) return;
+    Promise.all([
+      fetch(`/api/groups/${id}`).then((r) => r.json()),
+      fetch(`/api/admin/groups/${id}/members`, {
+        headers: { "x-admin-secret": secret },
+      }).then((r) => r.json()),
+    ]).then(([gData, mData]) => {
+      if (!gData.error) setGroup(gData);
+      if (!mData.error) setMembers(Array.isArray(mData) ? mData : []);
+    });
+  };
+
+  const handleAddBots = async () => {
+    if (!isOpen || addingBots || botCount < 1) return;
+    setAddingBots(true);
+    try {
+      const res = await fetch(`/api/admin/groups/${id}/bots`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-secret": secret,
+        },
+        body: JSON.stringify({ count: Math.min(botCount, slotsLeft) }),
+      });
+      const data = await res.json();
+      if (res.ok) fetchData();
+      else alert(data.error || "Failed");
+    } finally {
+      setAddingBots(false);
+    }
+  };
+
+  const handleRunDraw = async () => {
+    if (!id) return;
+    if (
+      !confirm(
+        "Run draw now for this group? This will pick winners based on criteria."
+      )
+    )
+      return;
+    try {
+      const res = await fetch(`/api/admin/groups/${id}/draw`, {
+        method: "POST",
+        headers: { "x-admin-secret": secret },
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || "Failed to run draw");
+      } else {
+        fetchData();
+      }
+    } catch {
+      alert("Failed to run draw");
+    }
+  };
 
   const handleDelete = async () => {
     if (!confirm(`Delete "${group.name}"? This will remove all members and payments.`)) return;
@@ -98,6 +162,14 @@ export default function AdminGroupDetailPage() {
         </div>
         <button
           type="button"
+          onClick={handleRunDraw}
+          disabled={group.status === "DRAW_DONE" || group.status === "CANCELLED"}
+          className="rounded-lg border border-emerald-200 px-4 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-50 dark:border-emerald-700 dark:text-emerald-300 dark:hover:bg-emerald-900/30 disabled:opacity-50"
+        >
+          {group.status === "DRAW_DONE" ? "Draw completed" : "Run draw now"}
+        </button>
+        <button
+          type="button"
           onClick={handleDelete}
           disabled={deleting}
           className="rounded-lg border border-red-200 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/30 disabled:opacity-50"
@@ -105,6 +177,29 @@ export default function AdminGroupDetailPage() {
           {deleting ? "Deleting..." : "Delete group"}
         </button>
       </div>
+
+      {isOpen && slotsLeft > 0 && (
+        <div className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/50">
+          <span className="font-medium text-slate-700 dark:text-slate-300">Add bots</span>
+          <input
+            type="number"
+            min={1}
+            max={slotsLeft}
+            value={botCount}
+            onChange={(e) => setBotCount(Math.max(1, Math.min(slotsLeft, Number(e.target.value) || 1)))}
+            className="w-16 rounded border border-slate-300 px-2 py-1 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+          />
+          <span className="text-sm text-slate-500">of {slotsLeft} slots left</span>
+          <button
+            type="button"
+            onClick={handleAddBots}
+            disabled={addingBots}
+            className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-700 disabled:opacity-50"
+          >
+            {addingBots ? "Adding..." : "Add bots"}
+          </button>
+        </div>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
@@ -127,7 +222,7 @@ export default function AdminGroupDetailPage() {
           <table className="w-full text-sm">
             <thead className="sticky top-0 bg-slate-50 dark:bg-slate-800">
               <tr>
-                <th className="px-4 py-2 text-left">Mobile</th>
+                <th className="px-4 py-2 text-left">Mobile / Name</th>
                 <th className="px-4 py-2 text-left">Bids</th>
                 <th className="px-4 py-2 text-left">Amount</th>
                 <th className="px-4 py-2 text-left">Status</th>
@@ -140,7 +235,12 @@ export default function AdminGroupDetailPage() {
                   key={m.id}
                   className="border-t border-slate-200 dark:border-slate-700"
                 >
-                  <td className="px-4 py-2 font-mono">{m.mobileNumber}</td>
+                  <td className="px-4 py-2">
+                    <span className="font-mono">{m.mobileNumber}</span>
+                    {m.isBot && (
+                      <span className="ml-2 rounded bg-slate-200 px-1.5 py-0.5 text-xs dark:bg-slate-600">Bot</span>
+                    )}
+                  </td>
                   <td className="px-4 py-2">{m.bidCount}</td>
                   <td className="px-4 py-2">{formatRupees(m.totalAmount)}</td>
                   <td className="px-4 py-2">

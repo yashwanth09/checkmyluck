@@ -9,9 +9,9 @@ const montserrat = Montserrat({
 });
 
 export const metadata: Metadata = {
-  title: "BingoBids - Win an iPhone!",
+  title: "BingoBids - Lucky draw groups",
   description:
-    "Join our lucky draw groups. Pay ₹250 per bid, 500 members per group. One lucky winner gets an iPhone!",
+    "Join lucky draw groups. Bid per group, one winner when the group fills or when the timer ends. Refund if the group doesn’t fill.",
 };
 
 export default function RootLayout({

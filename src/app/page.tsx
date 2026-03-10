@@ -2,14 +2,18 @@ import Link from "next/link";
 import { GroupsList } from "@/components/GroupsList";
 import { YesterdayWinner } from "@/components/YesterdayWinner";
 import { LuckQuotes } from "@/components/LuckQuotes";
+import { getCurrentUser } from "@/lib/auth";
 
-export default function Home() {
+export const dynamic = "force-dynamic";
+
+export default async function Home() {
+  const user = await getCurrentUser();
   return (
     <div className="min-h-screen bg-zinc-50 text-zinc-900">
       {/* Banner / Header */}
       <header className="sticky top-0 z-20 border-b border-violet-200/60 bg-gradient-to-r from-violet-50 via-white to-fuchsia-50/80 shadow-sm backdrop-blur">
         <div className="mx-auto flex max-w-2xl flex-col items-center justify-center px-4 py-4 sm:px-6 sm:py-5 md:max-w-4xl lg:max-w-6xl">
-          <Link href="/" className="text-center">
+          <Link href={user ? "/lobby" : "/"} className="text-center">
             <span className="block text-2xl font-bold tracking-tight sm:text-3xl md:text-4xl">
               <span className="bg-gradient-to-r from-violet-600 to-fuchsia-600 bg-clip-text text-transparent">
                 BingoBids
@@ -30,22 +34,21 @@ export default function Home() {
         <section className="mb-6 flex flex-wrap items-end justify-between gap-4">
           <div>
             <h1 className="text-3xl font-extrabold leading-tight tracking-tight text-zinc-900 sm:text-4xl md:text-5xl">
-              One draw.
+              Guess the crowd.
               <br />
               <span className="bg-gradient-to-r from-violet-600 to-fuchsia-600 bg-clip-text text-transparent">
-                One iPhone.
+                Win with your prediction.
               </span>
-              <span className="ml-2 text-base font-normal text-zinc-500 sm:text-lg">(iPhone 17 <span className="text-sm">256 GB</span>)</span>
             </h1>
             <p className="mt-2 text-lg font-medium text-zinc-600 sm:text-xl">
-              Enter for just <span className="font-bold text-violet-600">₹250</span> — winner every day at 7 PM
+              Join a game, guess who most players will be, and share the prize pool if your prediction is right.
             </p>
             <p className="mt-2 text-sm font-semibold italic text-violet-600 sm:text-base">
-              Bid small. Win big.
+              Bid small. Guess smart. Win big.
             </p>
           </div>
           <p className="shrink-0 rounded-full bg-violet-100 px-3 py-1.5 text-xs font-medium text-violet-800">
-            500 per group • 1 winner • Closes 7 PM
+            Criteria-based winners • Timer per group • Virtual money while testing
           </p>
         </section>
 
@@ -61,7 +64,7 @@ export default function Home() {
               </span>
               <div>
                 <p className="font-bold">You win</p>
-                <p className="text-lg font-extrabold tracking-tight">You get the iPhone. <span className="text-sm font-normal text-white/80">(iPhone 17 <span className="text-xs">256 GB</span>)</span></p>
+                <p className="text-lg font-extrabold tracking-tight">You win if your chosen criterion matches the group.</p>
               </div>
             </div>
             <p className="text-2xl font-medium text-white/80 sm:text-3xl">or</p>
@@ -76,35 +79,29 @@ export default function Home() {
             </div>
           </div>
           <p className="mt-5 text-center text-sm font-medium text-white/90">
-            One winner per group when it fills. If the group doesn’t fill by 7 PM, we refund everyone. Play safe.
+            Winners are those whose chosen criterion matches the group (e.g. majority male). If the group doesn’t fill in time, we refund everyone. Play safe.
           </p>
         </section>
 
         {/* Groups first - visible without scrolling */}
         <section id="groups" className="mb-10">
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-violet-50 px-4 py-3 ring-1 ring-violet-200/60">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-violet-50 px-4 py-3 ring-1 ring-violet-200/60">
             <h2 className="text-sm font-semibold uppercase tracking-widest text-violet-800">
-              Live groups — join now
+              Live games — join now
             </h2>
-            <p className="text-xs font-medium text-violet-700">Max 10 bids per person</p>
+            <div className="flex items-center gap-2">
+              <p className="text-xs font-medium text-violet-700">
+                1 seat per player per game
+              </p>
+              <Link
+                href={user ? "/lobby" : "/login"}
+                className="inline-flex items-center rounded-full bg-violet-600 px-3 py-1 text-xs font-semibold text-white shadow-sm hover:bg-violet-700"
+              >
+                {user ? "Go to lobby" : "Login to play"}
+              </Link>
+            </div>
           </div>
           <GroupsList />
-        </section>
-
-        {/* Stats - compact */}
-        <section className="mb-8 grid grid-cols-3 gap-3 border-y border-zinc-200 py-5">
-          <div>
-            <p className="text-xl font-bold text-zinc-900 sm:text-2xl">500</p>
-            <p className="mt-0.5 text-xs text-zinc-500">Members/group</p>
-          </div>
-          <div>
-            <p className="text-xl font-bold text-zinc-900 sm:text-2xl">₹250</p>
-            <p className="mt-0.5 text-xs text-zinc-500">Per bid</p>
-          </div>
-          <div>
-            <p className="text-xl font-bold text-zinc-900 sm:text-2xl">1</p>
-            <p className="mt-0.5 text-xs text-zinc-500">Winner</p>
-          </div>
         </section>
 
         {/* Recent winners */}
@@ -135,21 +132,20 @@ export default function Home() {
                 3
               </span>
               <span>
-                Draw at 7 PM only when the group is full — one winner gets the iPhone{" "}
-                <span className="whitespace-nowrap text-zinc-500">(iPhone 17 <span className="text-xs">256 GB</span>)</span>.
+                Winners are those whose chosen criterion matches the group. If the group doesn’t fill in time, we refund everyone.
                 If the group doesn’t fill, we refund everyone.
               </span>
             </li>
           </ol>
           <p className="mt-4 rounded-lg bg-amber-50 px-4 py-2 text-sm text-amber-800 ring-1 ring-amber-200/60">
-            <strong>Draw only when full.</strong> If 500 members don’t join by 7 PM, the group is cancelled and we refund all money.
+            <strong>Draw only when full.</strong> If the group doesn't fill in time, it's cancelled and we refund everyone.
           </p>
         </section>
       </main>
 
       <footer className="fixed bottom-0 left-0 right-0 border-t border-zinc-200 bg-white/95 px-4 py-3 backdrop-blur">
         <p className="mx-auto max-w-2xl text-center text-xs text-zinc-500 md:max-w-4xl lg:max-w-6xl">
-          Max 10 bids per person • Groups close at 7:00 PM • Draw only when full (else refund)
+          1 entry per mobile number • Groups close when full or when timer ends • Draw only when full (else refund)
         </p>
       </footer>
     </div>

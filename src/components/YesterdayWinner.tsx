@@ -7,6 +7,7 @@ type Winner = {
   drawDoneAt: string | null;
   winnerName: string | null;
   winnerMobileMasked: string;
+  winAmount: number;
 };
 
 function formatDrawDate(iso: string | null): string {
@@ -27,7 +28,34 @@ export function YesterdayWinner() {
   useEffect(() => {
     fetch("/api/winners?days=7")
       .then((r) => r.json())
-      .then((data) => setWinners(data.winners || []))
+      .then((data) => {
+        const list = data.winners || [];
+        const flat: Winner[] = list.flatMap(
+          (g: {
+            groupName: string;
+            drawDoneAt: string | null;
+            winners: {
+              winnerName: string | null;
+              winnerMobileMasked: string;
+              winAmount: number;
+            }[];
+          }) =>
+            g.winners.map(
+              (w: {
+                winnerName: string | null;
+                winnerMobileMasked: string;
+                winAmount: number;
+              }) => ({
+                groupName: g.groupName,
+                drawDoneAt: g.drawDoneAt,
+                winnerName: w.winnerName,
+                winnerMobileMasked: w.winnerMobileMasked,
+                winAmount: w.winAmount,
+              })
+            )
+        );
+        setWinners(flat);
+      })
       .catch(() => setWinners([]))
       .finally(() => setLoading(false));
   }, []);
@@ -50,31 +78,27 @@ export function YesterdayWinner() {
           Recent winners
         </h3>
         <p className="mt-4 text-sm text-zinc-500">
-          Winners will appear here after each 7 PM draw. Could you be next?
+          Winners will appear here after each draw. Could you be next?
         </p>
       </section>
     );
   }
 
   return (
-    <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-      <h3 className="text-sm font-medium uppercase tracking-widest text-zinc-500">
+    <section className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+      <h3 className="text-xs font-medium uppercase tracking-widest text-zinc-500">
         Recent winners
       </h3>
-      <ul className="mt-4 space-y-4">
+      <ul className="mt-2 space-y-1 text-xs text-zinc-600">
         {winners.map((w, i) => (
-          <li
-            key={`${w.groupName}-${w.drawDoneAt}-${i}`}
-            className="flex flex-wrap items-baseline justify-between gap-2 border-b border-zinc-100 pb-4 last:border-0 last:pb-0"
-          >
-            <div>
-              <p className="font-semibold text-zinc-900">
-                {w.winnerName || `****${w.winnerMobileMasked.slice(-2)}`}
-              </p>
-              <p className="text-sm text-zinc-500">{w.groupName}</p>
-            </div>
-            <span className="text-xs font-medium text-violet-600">
-              {formatDrawDate(w.drawDoneAt)}
+          <li key={`${w.groupName}-${w.winnerMobileMasked}-${i}`}>
+            <span className="font-semibold text-zinc-900">
+              {w.winnerName || `****${w.winnerMobileMasked.slice(-2)}`}
+            </span>{" "}
+            has won ₹{w.winAmount.toLocaleString("en-IN")} from{" "}
+            <span className="font-medium">{w.groupName}</span>{" "}
+            <span className="text-[0.7rem] text-zinc-400">
+              ({formatDrawDate(w.drawDoneAt)})
             </span>
           </li>
         ))}

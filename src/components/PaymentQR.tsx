@@ -43,7 +43,7 @@ export function PaymentQR({
           Payment confirmed
         </h3>
         <p className="mt-2 text-sm text-zinc-600">
-          You&apos;re now entered into this iPhone (17 <span className="text-[0.85em]">256 GB</span>) draw. Good luck!
+          You&apos;re now entered into this draw. Good luck!
         </p>
         <button
           onClick={onBack}

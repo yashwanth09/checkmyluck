@@ -23,9 +23,19 @@ export default function AdminGroupsPage() {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState("");
-  const [slots, setSlots] = useState(500);
+  const [slots, setSlots] = useState(10);
+  const [bidAmount, setBidAmount] = useState(20);
+  const [durationMins, setDurationMins] = useState(10);
+  const [criteria, setCriteria] = useState<Array<{ label: string; type: string; value: number | "" }>>([]);
   const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const CRITERION_TYPES = [
+    { value: "age_above", label: "Age above" },
+    { value: "age_below", label: "Age below" },
+    { value: "majority_male", label: "Majority male" },
+    { value: "majority_female", label: "Majority female" },
+  ] as const;
 
   const fetchGroups = () => {
     setLoading(true);
@@ -66,7 +76,19 @@ export default function AdminGroupsPage() {
           "Content-Type": "application/json",
           "x-admin-secret": secret,
         },
-        body: JSON.stringify({ name: newName.trim(), maxMembers: slots }),
+        body: JSON.stringify({
+          name: newName.trim(),
+          maxMembers: slots,
+          entryFee: bidAmount,
+          durationMinutes: durationMins,
+          criteria: criteria
+            .filter((c) => c.label.trim().length > 0)
+            .map((c) => ({
+              label: c.label.trim(),
+              type: c.type,
+              value: c.type.startsWith("age_") && c.value !== "" ? Number(c.value) : undefined,
+            })),
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -74,6 +96,7 @@ export default function AdminGroupsPage() {
         return;
       }
       setNewName("");
+      setCriteria([]);
       fetchGroups();
     } catch {
       setError("Network error");
@@ -123,14 +146,36 @@ export default function AdminGroupsPage() {
               className="min-w-[140px] flex-1 rounded-lg border border-slate-300 px-4 py-2 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
             />
             <label className="flex items-center gap-2 rounded-lg border border-slate-300 px-4 py-2 dark:border-slate-600 dark:bg-slate-800">
-              <span className="text-sm text-slate-600 dark:text-slate-400">Slots</span>
+              <span className="text-sm text-slate-600 dark:text-slate-400">Max users</span>
               <input
                 type="number"
-                min={10}
+                min={2}
                 max={10000}
                 value={slots}
-                onChange={(e) => setSlots(Math.max(10, Math.min(10000, Number(e.target.value) || 500)))}
-                className="w-20 rounded border-0 bg-transparent py-0 text-right dark:text-white"
+                onChange={(e) => setSlots(Math.max(2, Math.min(10000, Number(e.target.value) || 10)))}
+                className="w-16 rounded border-0 bg-transparent py-0 text-right dark:text-white"
+              />
+            </label>
+            <label className="flex items-center gap-2 rounded-lg border border-slate-300 px-4 py-2 dark:border-slate-600 dark:bg-slate-800">
+              <span className="text-sm text-slate-600 dark:text-slate-400">₹/bid</span>
+              <input
+                type="number"
+                min={1}
+                max={100000}
+                value={bidAmount}
+                onChange={(e) => setBidAmount(Math.max(1, Math.min(100000, Number(e.target.value) || 20)))}
+                className="w-16 rounded border-0 bg-transparent py-0 text-right dark:text-white"
+              />
+            </label>
+            <label className="flex items-center gap-2 rounded-lg border border-slate-300 px-4 py-2 dark:border-slate-600 dark:bg-slate-800">
+              <span className="text-sm text-slate-600 dark:text-slate-400">Mins</span>
+              <input
+                type="number"
+                min={1}
+                max={10080}
+                value={durationMins}
+                onChange={(e) => setDurationMins(Math.max(1, Math.min(10080, Number(e.target.value) || 10)))}
+                className="w-16 rounded border-0 bg-transparent py-0 text-right dark:text-white"
               />
             </label>
             <button
@@ -141,8 +186,76 @@ export default function AdminGroupsPage() {
               {creating ? "..." : "Create"}
             </button>
           </div>
+
+          <div className="border-t border-slate-200 pt-3 dark:border-slate-700">
+            <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
+              Winning criteria (optional)
+            </p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Users pick one when joining. After the group fills, criteria that match the group (e.g. majority male) determine winners.
+            </p>
+            {criteria.map((c, i) => (
+              <div key={i} className="mt-2 flex flex-wrap items-center gap-2">
+                <input
+                  type="text"
+                  placeholder="e.g. Age above 30"
+                  value={c.label}
+                  onChange={(e) => {
+                    const next = [...criteria];
+                    next[i] = { ...next[i]!, label: e.target.value };
+                    setCriteria(next);
+                  }}
+                  className="min-w-[120px] rounded border border-slate-300 px-2 py-1.5 text-sm dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+                />
+                <select
+                  value={c.type}
+                  onChange={(e) => {
+                    const next = [...criteria];
+                    next[i] = { ...next[i]!, type: e.target.value };
+                    setCriteria(next);
+                  }}
+                  className="rounded border border-slate-300 px-2 py-1.5 text-sm dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+                >
+                  {CRITERION_TYPES.map((t) => (
+                    <option key={t.value} value={t.value}>{t.label}</option>
+                  ))}
+                </select>
+                {(c.type === "age_above" || c.type === "age_below") && (
+                  <input
+                    type="number"
+                    min={1}
+                    max={120}
+                    placeholder="Age"
+                    value={c.value === "" ? "" : c.value}
+                    onChange={(e) => {
+                      const next = [...criteria];
+                      const v = e.target.value;
+                      next[i] = { ...next[i]!, value: v === "" ? "" : Math.max(1, Math.min(120, Number(v))) };
+                      setCriteria(next);
+                    }}
+                    className="w-16 rounded border border-slate-300 px-2 py-1.5 text-sm dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+                  />
+                )}
+                <button
+                  type="button"
+                  onClick={() => setCriteria(criteria.filter((_, j) => j !== i))}
+                  className="text-sm text-red-600 hover:underline dark:text-red-400"
+                >
+                  Remove
+                </button>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={() => setCriteria([...criteria, { label: "", type: "age_above", value: 30 }])}
+              className="mt-2 text-sm text-violet-600 hover:underline dark:text-violet-400"
+            >
+              + Add criterion
+            </button>
+          </div>
+
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            Name auto-fills as Group 1, Group 2, etc. for today. You can change it. Slots = max members (10–10000).
+            Max users, bid amount (₹), and timer (minutes) per group. Group closes when timer ends or when full.
           </p>
         </form>
         {error && (

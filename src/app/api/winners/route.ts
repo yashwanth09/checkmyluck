@@ -21,24 +21,35 @@ export async function GET(req: Request) {
     const groups = await prisma.group.findMany({
       where: {
         status: GroupStatus.DRAW_DONE,
-        winnerId: { not: null },
         drawDoneAt: { gte: since },
       },
       include: {
         winner: true,
+        members: {
+          where: { isWinner: true },
+          select: { displayName: true, mobileNumber: true, totalAmount: true },
+        },
       },
       orderBy: { drawDoneAt: "desc" },
       take: 10,
     });
 
-    const winners = groups
-      .filter((g) => g.winner)
-      .map((g) => ({
+    const winners = groups.map((g) => {
+      const winnerMembers = g.members.length > 0
+        ? g.members
+        : g.winner
+          ? [{ displayName: g.winner.displayName, mobileNumber: g.winner.mobileNumber }]
+          : [];
+      return {
         groupName: g.name,
         drawDoneAt: g.drawDoneAt?.toISOString(),
-        winnerName: (g.winner!.displayName?.trim() || null) as string | null,
-        winnerMobileMasked: maskMobile(g.winner!.mobileNumber),
-      }));
+        winners: winnerMembers.map((m) => ({
+        winnerName: (m.displayName?.trim() || null) as string | null,
+        winnerMobileMasked: maskMobile(m.mobileNumber),
+        winAmount: m.totalAmount * 2,
+        })),
+      };
+    }).filter((w) => w.winners.length > 0);
 
     return NextResponse.json({ winners });
   } catch (error) {

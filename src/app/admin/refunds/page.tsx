@@ -83,7 +83,7 @@ export default function AdminRefundsPage() {
             Refunds (cancelled groups)
           </h2>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            Groups that didn’t fill by 7 PM — refund these members via UPI/bank manually. Export CSV to track.
+            Groups that didn’t fill in time — refund these members via UPI/bank manually. Export CSV to track.
           </p>
         </div>
         {data.rows.length > 0 && (

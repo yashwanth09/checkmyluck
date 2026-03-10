@@ -12,21 +12,40 @@ datasource db {
 
 model Group {
   id          String   @id @default(cuid())
-  name        String   // e.g. "iPhone Draw - Mar 8"
-  maxMembers  Int      @default(500)
-  entryFee    Int      @default(250) // rupees
+  name        String
+  maxMembers  Int      @default(10)
+  entryFee    Int      @default(20) // bid amount in rupees (per group)
   status      GroupStatus @default(OPEN)
-  closesAt    DateTime // 7PM daily
+  // When the game should auto-close. Typically createdAt + durationMinutes.
+  closesAt    DateTime
+  // Configurable game duration in minutes (used to compute closesAt for new groups).
+  durationMinutes Int   @default(5)
   createdAt   DateTime @default(now())
   drawDoneAt  DateTime?
-  winnerId    String?
+  winnerId    String?  // legacy: one winner; criteria-based draw uses Member.isWinner
   winner      Member?  @relation("Winner", fields: [winnerId], references: [id])
 
-  members     Member[]
-  payments    Payment[]
+  members       Member[]
+  payments      Payment[]
+  criteria      GroupCriterion[]
 
   @@index([status, closesAt])
   @@index([createdAt])
+}
+
+// Winning criteria for this group (e.g. "Age above 30", "Majority male"). Users pick one when joining.
+model GroupCriterion {
+  id        String   @id @default(cuid())
+  groupId   String
+  group     Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  label     String   // e.g. "Age above 30", "Majority male"
+  type      String   // age_above | age_below | majority_male | majority_female
+  value     Int?     // for age_above/age_below: threshold (e.g. 30)
+  order     Int      @default(0)
+
+  members   Member[] @relation("SelectedCriterion")
+
+  @@index([groupId])
 }
 
 enum GroupStatus {
@@ -38,16 +57,27 @@ enum GroupStatus {
 }
 
 model Member {
-  id            String   @id @default(cuid())
-  groupId       String
-  group         Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  mobileNumber  String
-  displayName   String?  // Optional name shown for winners
-  address       String   @db.Text
-  bidCount      Int      @default(1) // 1-10
-  totalAmount   Int      // bidCount * entryFee
-  paymentStatus PaymentStatus @default(PENDING)
-  joinedAt      DateTime @default(now())
+  id                  String   @id @default(cuid())
+  groupId             String
+  group               Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  // Optional link to authenticated user (for wallet, history, etc.)
+  userId              String?
+  user                User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  mobileNumber        String
+  displayName         String?
+  address             String   @db.Text
+  bidCount            Int      @default(1)
+  totalAmount         Int
+  paymentStatus       PaymentStatus @default(PENDING)
+  joinedAt            DateTime @default(now())
+  isBot               Boolean  @default(false) // admin-added bot to fill group
+  age                 Int?     // for criteria evaluation (e.g. age above 30)
+  gender              String?  // MALE | FEMALE | OTHER
+  selectedCriterionId String?
+  selectedCriterion   GroupCriterion? @relation("SelectedCriterion", fields: [selectedCriterionId], references: [id], onDelete: SetNull)
+  isWinner            Boolean  @default(false) // set after draw when their criterion matched
+  // When the player explicitly locked their prediction for this group.
+  guessLockedAt       DateTime?
 
   payments      Payment[]
   wonGroups     Group[]  @relation("Winner")
@@ -56,6 +86,54 @@ model Member {
   @@index([groupId])
   @@index([mobileNumber])
   @@index([paymentStatus])
+  @@index([selectedCriterionId])
+}
+
+// Authenticated user of the platform, identified by phone number (OTP-based login).
+model User {
+  id            String   @id @default(cuid())
+  phoneNumber   String   @unique
+  name          String?
+  age           Int?
+  gender        String?  // MALE | FEMALE | OTHER
+  walletBalance Int      @default(0) // in rupees
+  createdAt     DateTime @default(now())
+
+  members       Member[]
+  transactions  Transaction[]
+}
+
+// One-time passcode for OTP-based login.
+model OtpCode {
+  id          String   @id @default(cuid())
+  phoneNumber String
+  code        String
+  expiresAt   DateTime
+  verified    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([phoneNumber, code])
+  @@index([expiresAt])
+}
+
+// Wallet and game-related money movements for a user.
+model Transaction {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      TransactionType
+  amount    Int      // in rupees; positive for credit, negative for debit
+  meta      Json?
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+enum TransactionType {
+  ADD_CASH
+  GAME_ENTRY
+  WIN_PAYOUT
+  WITHDRAW
 }
 
 enum PaymentStatus {

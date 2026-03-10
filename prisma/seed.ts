@@ -13,14 +13,41 @@ async function main() {
 
   const group = await prisma.group.create({
     data: {
-      name: `iPhone Draw - ${today.toLocaleDateString("en-IN", { month: "short", day: "numeric", year: "numeric" })}`,
-      maxMembers: 500,
-      entryFee: 250,
+      name: `Draw - ${today.toLocaleDateString("en-IN", { month: "short", day: "numeric", year: "numeric" })}`,
+      maxMembers: 20,
+      entryFee: 20,
       closesAt,
+      durationMinutes: 5,
+      criteria: {
+        create: [
+          {
+            label: "Mostly women",
+            type: "majority_female",
+            order: 0,
+          },
+          {
+            label: "Mostly men",
+            type: "majority_male",
+            order: 1,
+          },
+          {
+            label: "Mostly under 35",
+            type: "age_below",
+            value: 35,
+            order: 2,
+          },
+          {
+            label: "Mostly 35 or older",
+            type: "age_above",
+            value: 35,
+            order: 3,
+          },
+        ],
+      },
     },
   });
 
-  console.log("Created seed group:", group.name);
+  console.log("Created seed group with criteria:", group.name);
 }
 
 main()

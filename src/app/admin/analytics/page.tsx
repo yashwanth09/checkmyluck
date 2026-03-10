@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useAdminSecret } from "@/lib/admin-context";
 import { formatRupees, formatDateTime, getStatusBadgeColor, getStatusLabel } from "@/lib/utils";
-import { ENTRY_FEE, REFUND_AMOUNT } from "@/lib/constants";
 import type { GroupStatus } from "@prisma/client";
 
 type GroupRow = {
@@ -23,7 +22,6 @@ type AnalyticsData = {
     todayIncome: number;
     incomeFromDraws: number;
     incomeFromCancelled: number;
-    targetPerGroup: number;
     groupCount: number;
   };
   groups: GroupRow[];
@@ -88,7 +86,7 @@ export default function AdminAnalyticsPage() {
             Income analytics
           </h2>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            Refund = ₹{REFUND_AMOUNT} per person when group is cancelled (you keep ₹{ENTRY_FEE - REFUND_AMOUNT}). Target ₹{summary.targetPerGroup.toLocaleString()} per group after refunds. Auto-refresh every {REFRESH_SECONDS}s.
+            When a group is cancelled, full refund (what each person paid). Income only from completed draws. Auto-refresh every {REFRESH_SECONDS}s.
           </p>
         </div>
         <button
@@ -120,15 +118,9 @@ export default function AdminAnalyticsPage() {
           </p>
         </div>
         <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
-          <p className="text-sm text-slate-500">From refunds (₹10/person)</p>
+          <p className="text-sm text-slate-500">From cancelled (full refund)</p>
           <p className="text-xl font-bold text-amber-600">
             {formatRupees(summary.incomeFromCancelled)}
-          </p>
-        </div>
-        <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
-          <p className="text-sm text-slate-500">Target per group</p>
-          <p className="text-xl font-bold text-slate-700 dark:text-slate-300">
-            {formatRupees(summary.targetPerGroup)}
           </p>
         </div>
       </div>
@@ -144,7 +136,7 @@ export default function AdminAnalyticsPage() {
                 <th className="px-4 py-3 text-left font-medium">Group</th>
                 <th className="px-4 py-3 text-left font-medium">Status</th>
                 <th className="px-4 py-3 text-right font-medium">Collection</th>
-                <th className="px-4 py-3 text-right font-medium">Refund (₹240 × N)</th>
+                <th className="px-4 py-3 text-right font-medium">Refund (total)</th>
                 <th className="px-4 py-3 text-right font-medium">Income</th>
               </tr>
             </thead>

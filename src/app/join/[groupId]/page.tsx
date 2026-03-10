@@ -27,7 +27,7 @@ export default async function JoinPage({
         <div className="mx-auto max-w-xl space-y-6">
           <div className="rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 px-5 py-4 text-white shadow-lg ring-1 ring-white/20">
             <p className="text-center text-sm font-semibold">
-              🏆 Win → iPhone <span className="text-white/80 text-xs">(17 <span className="text-[0.7em]">256 GB</span>)</span> &nbsp; &nbsp; or &nbsp; &nbsp; 💰 Refund
+              🏆 Win the prize &nbsp; &nbsp; or &nbsp; &nbsp; 💰 Refund
             </p>
             <p className="mt-1 text-center text-xs text-white/90">
               No risk. Your money back if the group doesn’t fill.

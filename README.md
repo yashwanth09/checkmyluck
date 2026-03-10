@@ -1,6 +1,6 @@
 # BingoBids
 
-Lucky draw platform — join groups, bid for a chance to win an iPhone. 500 members per group, ₹250 per bid, one winner per group.
+Lucky draw platform — join groups with configurable size, bid amount, and timer. One winner per group when it fills or when the timer ends.
 
 ## Tech Stack
 

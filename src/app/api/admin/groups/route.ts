@@ -1,13 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { GroupStatus } from "@prisma/client";
-import {
-  MAX_GROUPS_PER_DAY,
-  MAX_MEMBERS_PER_GROUP,
-  ENTRY_FEE,
-  GROUP_CLOSE_HOUR,
-  GROUP_CLOSE_MINUTE,
-} from "@/lib/constants";
+import { MAX_GROUPS_PER_DAY } from "@/lib/constants";
 import { isAdmin } from "@/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
@@ -73,7 +67,13 @@ export async function POST(req: Request) {
   }
   try {
     const body = await req.json();
-    const { name, maxMembers: rawSlots } = body;
+    const {
+      name,
+      maxMembers: rawSlots,
+      entryFee: rawFee,
+      durationMinutes: rawDuration,
+      criteria: rawCriteria,
+    } = body;
 
     if (!name || typeof name !== "string" || name.trim().length < 3) {
       return NextResponse.json(
@@ -85,10 +85,30 @@ export async function POST(req: Request) {
     const maxMembers =
       rawSlots != null && Number.isFinite(Number(rawSlots))
         ? Math.round(Number(rawSlots))
-        : MAX_MEMBERS_PER_GROUP;
-    if (maxMembers < 10 || maxMembers > 10000) {
+        : 10;
+    if (maxMembers < 2 || maxMembers > 10000) {
       return NextResponse.json(
-        { error: "Slots must be between 10 and 10000" },
+        { error: "Max users must be between 2 and 10000" },
+        { status: 400 }
+      );
+    }
+
+    const entryFee =
+      rawFee != null && Number.isFinite(Number(rawFee)) ? Math.round(Number(rawFee)) : 20;
+    if (entryFee < 1 || entryFee > 100000) {
+      return NextResponse.json(
+        { error: "Bid amount must be between 1 and 100000" },
+        { status: 400 }
+      );
+    }
+
+    const durationMinutes =
+      rawDuration != null && Number.isFinite(Number(rawDuration))
+        ? Math.round(Number(rawDuration))
+        : 10;
+    if (durationMinutes < 1 || durationMinutes > 10080) {
+      return NextResponse.json(
+        { error: "Duration must be between 1 and 10080 minutes (1 week)" },
         { status: 400 }
       );
     }
@@ -109,19 +129,36 @@ export async function POST(req: Request) {
       );
     }
 
-    const closesAt = new Date(today);
-    closesAt.setHours(GROUP_CLOSE_HOUR, GROUP_CLOSE_MINUTE, 0, 0);
-    if (closesAt <= new Date()) {
-      closesAt.setDate(closesAt.getDate() + 1);
-    }
+    const now = new Date();
+    const closesAt = new Date(now.getTime() + durationMinutes * 60 * 1000);
+
+    const criteriaList = Array.isArray(rawCriteria)
+      ? rawCriteria
+      : [];
+    const validTypes = ["age_above", "age_below", "majority_male", "majority_female"];
+    const criteriaData = criteriaList
+      .filter(
+        (c: { label?: string; type?: string; value?: number }) =>
+          c && typeof c.label === "string" && c.label.trim().length > 0 && validTypes.includes(String(c.type))
+      )
+      .map((c: { label: string; type: string; value?: number }, i: number) => ({
+        label: c.label.trim(),
+        type: c.type,
+        value: c.type?.startsWith("age_") && Number.isFinite(Number(c.value)) ? Number(c.value) : null,
+        order: i,
+      }));
 
     const group = await prisma.group.create({
       data: {
         name: name.trim(),
         maxMembers,
-        entryFee: ENTRY_FEE,
+        entryFee,
         closesAt,
+        criteria: criteriaData.length
+          ? { create: criteriaData }
+          : undefined,
       },
+      include: { criteria: true },
     });
 
     return NextResponse.json({
@@ -129,6 +166,13 @@ export async function POST(req: Request) {
       group: {
         ...group,
         closesAt: group.closesAt.toISOString(),
+        criteria: group.criteria.map((c) => ({
+          id: c.id,
+          label: c.label,
+          type: c.type,
+          value: c.value,
+          order: c.order,
+        })),
       },
     });
   } catch (error) {

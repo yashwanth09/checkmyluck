@@ -13,6 +13,7 @@ export async function GET(
       where: { id },
       include: {
         _count: { select: { members: true } },
+        criteria: { orderBy: { order: "asc" } },
       },
     });
 
@@ -25,6 +26,13 @@ export async function GET(
       memberCount: group._count.members,
       slotsLeft: group.maxMembers - group._count.members,
       closesAt: group.closesAt.toISOString(),
+      criteria: group.criteria.map((c) => ({
+        id: c.id,
+        label: c.label,
+        type: c.type,
+        value: c.value,
+        order: c.order,
+      })),
     });
   } catch (error) {
     console.error("GET /api/groups/[id]:", error);
