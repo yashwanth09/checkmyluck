@@ -34,22 +34,45 @@ export async function GET(req: Request) {
       take: 10,
     });
 
-    const winners = groups.map((g) => {
-      const winnerMembers = g.members.length > 0
-        ? g.members
-        : g.winner
-          ? [{ displayName: g.winner.displayName, mobileNumber: g.winner.mobileNumber }]
-          : [];
-      return {
-        groupName: g.name,
-        drawDoneAt: g.drawDoneAt?.toISOString(),
-        winners: winnerMembers.map((m) => ({
-        winnerName: (m.displayName?.trim() || null) as string | null,
-        winnerMobileMasked: maskMobile(m.mobileNumber),
-        winAmount: m.totalAmount * 2,
-        })),
-      };
-    }).filter((w) => w.winners.length > 0);
+    const winners = groups
+      .map((g) => {
+        const winnerMembers =
+          g.members.length > 0
+            ? g.members
+            : g.winner
+            ? [
+                {
+                  displayName: g.winner.displayName,
+                  mobileNumber: g.winner.mobileNumber,
+                  totalAmount: g.entryFee,
+                },
+              ]
+            : [];
+
+        if (winnerMembers.length === 0) {
+          return null;
+        }
+
+        // Approximate per-winner amount similar to draw logic (90% of total pool).
+        const totalPool = g.entryFee * g.maxMembers;
+        const platformFee = Math.floor(totalPool * 0.1);
+        const prizePool = totalPool - platformFee;
+        const perWinner =
+          winnerMembers.length > 0
+            ? Math.floor(prizePool / winnerMembers.length)
+            : 0;
+
+        return {
+          groupName: g.name,
+          drawDoneAt: g.drawDoneAt?.toISOString(),
+          winners: winnerMembers.map((m) => ({
+            winnerName: (m.displayName?.trim() || null) as string | null,
+            winnerMobileMasked: maskMobile(m.mobileNumber),
+            winAmount: perWinner,
+          })),
+        };
+      })
+      .filter((w): w is NonNullable<typeof w> => !!w);
 
     return NextResponse.json({ winners });
   } catch (error) {
