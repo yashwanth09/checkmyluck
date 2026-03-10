@@ -73,9 +73,11 @@ export async function POST(req: Request) {
       body: JSON.stringify(payload),
     });
 
+    const respText = await resp.text().catch(() => "");
+    console.log("MSG91 response", resp.status, respText);
+
     if (!resp.ok) {
-      const text = await resp.text().catch(() => "");
-      console.error("MSG91 send error", resp.status, text);
+      console.error("MSG91 send error", resp.status, respText);
       return NextResponse.json(
         { error: "Failed to send OTP" },
         { status: 500 }
