@@ -63,14 +63,15 @@ export async function POST(
     let resolvedCriterionId: string;
 
     if (schema.criterionId(criterionId)) {
-      const belongs = group.criteria.some((c) => c.id === criterionId);
+      const id = criterionId as string;
+      const belongs = group.criteria.some((c) => c.id === id);
       if (!belongs) {
         return NextResponse.json(
           { error: "Invalid prediction option" },
           { status: 400 }
         );
       }
-      resolvedCriterionId = criterionId;
+      resolvedCriterionId = id;
     } else if (schema.comparison(comparison) && schema.age(age)) {
       const type = comparison === "above" ? "age_above" : "age_below";
       const label =
