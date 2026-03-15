@@ -143,7 +143,11 @@ export default async function GameLobbyPage({ params }: PageProps) {
               ) : (
                 <LockGuessClient
                   groupId={group.id}
-                  criteriaKind={group.criteriaKind ?? undefined}
+                  criteriaKind={
+                    group.criteriaKind === "age" || group.criteriaKind === "state"
+                      ? group.criteriaKind
+                      : undefined
+                  }
                   criteria={group.criteria.map((c) => ({
                     id: c.id,
                     label: c.label,

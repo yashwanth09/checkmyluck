@@ -54,7 +54,7 @@ export function LockGuessClient(props: LockGuessClientProps) {
   const [age, setAge] = useState<number | "">(() => {
     const initial = criteria.find((c) => c.id === initialSelectedId);
     const v = initial?.value;
-    return v != null && AGES.includes(v) ? v : "";
+    return v != null && (AGES as readonly number[]).includes(v) ? v : "";
   });
 
   const [selectedState, setSelectedState] = useState<string>(() => {
