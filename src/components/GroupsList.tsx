@@ -41,8 +41,20 @@ export function GroupsList() {
       fetch("/api/groups")
         .then((r) => r.json())
         .then((data) => {
-          if (data.error) setError(data.error);
-          else setGroups(Array.isArray(data) ? data : []);
+          if (data?.error) setError(String(data.error));
+          else {
+            const list = Array.isArray(data) ? data : [];
+            setGroups(
+              list.filter(
+                (g: unknown): g is Group =>
+                  g != null &&
+                  typeof g === "object" &&
+                  "id" in g &&
+                  "closesAt" in g &&
+                  "maxMembers" in g
+              )
+            );
+          }
         })
         .catch(() => setError("Failed to load groups"))
         .finally(() => setLoading(false));
@@ -151,14 +163,19 @@ export function GroupsList() {
   return (
     <div className="grid gap-4 sm:grid-cols-1 lg:grid-cols-2">
       {groups.map((g) => {
-        const isExpired = new Date(g.closesAt).getTime() <= now;
+        const maxMembers = Number(g.maxMembers) || 1;
+        const memberCount = Number(g.memberCount) || 0;
+        const closesAt = g.closesAt != null ? String(g.closesAt) : "";
+        const isExpired = closesAt ? new Date(closesAt).getTime() <= now : true;
         const fillPercent = Math.min(
           100,
-          Math.round((g.memberCount / g.maxMembers) * 100)
+          Math.round((memberCount / maxMembers) * 100)
         );
         const showResultsOverlay =
           g.slotsLeft === 0 && !isExpired && g.status !== "DRAW_DONE";
-        const resultsInTime = formatTimeLeft(g.closesAt).replace(/\s+left$/, "").toLowerCase();
+        const resultsInTime = closesAt
+          ? formatTimeLeft(closesAt).replace(/\s+left$/, "").toLowerCase()
+          : "soon";
 
         return (
           <div
@@ -178,8 +195,8 @@ export function GroupsList() {
                   <span className="text-[10px]">✨</span> Guess &amp; win
                 </span>
                 <span className="text-[11px] text-zinc-500">
-                  {isExpired ? "Time's up" : formatTimeLeft(g.closesAt)}
-                  {g.slotsLeft > 0 && ` • ${g.slotsLeft} slots left`}
+                  {isExpired ? "Time's up" : closesAt ? formatTimeLeft(closesAt) : "—"}
+                  {(g.slotsLeft ?? 0) > 0 && ` • ${g.slotsLeft} slots left`}
                 </span>
               </div>
               <div className="flex items-start justify-between gap-4">
@@ -188,18 +205,18 @@ export function GroupsList() {
                     {g.name}
                   </h3>
                   <p className="mt-1 text-xs text-zinc-500">
-                    Closes {formatDateTime(new Date(g.closesAt))}
+                    Closes {closesAt ? formatDateTime(new Date(closesAt)) : "—"}
                   </p>
                   <div className="mt-3 flex flex-wrap items-center gap-2">
                     <span
                       className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-medium ${getStatusBadgeColor(
-                        g.status
+                        (g.status as GroupStatus) ?? "CLOSED"
                       )}`}
                     >
-                      {getStatusLabel(g.status)}
+                      {getStatusLabel((g.status as GroupStatus) ?? "CLOSED")}
                     </span>
                     <span className="text-[11px] text-zinc-500">
-                      {g.memberCount} / {g.maxMembers} joined
+                      {memberCount} / {maxMembers} joined
                     </span>
                     {g.criteriaKind && (
                       <span className="text-[11px] font-medium text-violet-600">
@@ -213,12 +230,12 @@ export function GroupsList() {
                       style={{ width: `${fillPercent}%` }}
                     />
                   </div>
-                  {g.recentJoins && g.recentJoins.length > 0 && (
+                  {Array.isArray(g.recentJoins) && g.recentJoins.length > 0 && (
                     <p className="mt-2 text-[11px] text-zinc-500">
                       <span className="font-medium text-zinc-800">
-                        {g.recentJoins[0].displayName}
+                        {g.recentJoins[0]?.displayName ?? "A player"}
                       </span>{" "}
-                      joined {formatRecentTime(g.recentJoins[0].joinedAt)}
+                      joined {formatRecentTime(g.recentJoins[0]?.joinedAt ?? new Date().toISOString())}
                       {g.recentJoins.length > 1 && (
                         <> &middot; +{g.recentJoins.length - 1} more</>
                       )}
@@ -230,7 +247,7 @@ export function GroupsList() {
                     Entry
                   </p>
                   <p className="mt-1 text-lg font-semibold text-zinc-900">
-                    {formatRupees(g.entryFee)}
+                    {formatRupees(Number(g.entryFee) || 0)}
                   </p>
                 </div>
               </div>

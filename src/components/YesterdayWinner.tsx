@@ -29,28 +29,28 @@ export function YesterdayWinner() {
     fetch("/api/winners?days=7")
       .then((r) => r.json())
       .then((data) => {
-        const list = data.winners || [];
+        const list = Array.isArray(data?.winners) ? data.winners : [];
         const flat: Winner[] = list.flatMap(
           (g: {
-            groupName: string;
-            drawDoneAt: string | null;
-            winners: {
-              winnerName: string | null;
-              winnerMobileMasked: string;
-              winAmount: number;
+            groupName?: string;
+            drawDoneAt?: string | null;
+            winners?: {
+              winnerName?: string | null;
+              winnerMobileMasked?: string;
+              winAmount?: number;
             }[];
           }) =>
-            g.winners.map(
+            (Array.isArray(g?.winners) ? g.winners : []).map(
               (w: {
-                winnerName: string | null;
-                winnerMobileMasked: string;
-                winAmount: number;
+                winnerName?: string | null;
+                winnerMobileMasked?: string;
+                winAmount?: number;
               }) => ({
-                groupName: g.groupName,
-                drawDoneAt: g.drawDoneAt,
-                winnerName: w.winnerName,
-                winnerMobileMasked: w.winnerMobileMasked,
-                winAmount: w.winAmount,
+                groupName: g.groupName ?? "",
+                drawDoneAt: g.drawDoneAt ?? null,
+                winnerName: w.winnerName ?? null,
+                winnerMobileMasked: w.winnerMobileMasked ?? "****",
+                winAmount: typeof w.winAmount === "number" ? w.winAmount : 0,
               })
             )
         );
