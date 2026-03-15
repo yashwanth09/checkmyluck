@@ -2,11 +2,18 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { GroupStatus } from "@prisma/client";
+import { INDIAN_STATES } from "@/lib/constants";
 
 export const dynamic = "force-dynamic";
 
+const AGES = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
 const schema = {
   criterionId: (v: unknown) => typeof v === "string" && v.length > 0,
+  comparison: (v: unknown) => v === "above" || v === "below",
+  age: (v: unknown) =>
+    typeof v === "number" && Number.isInteger(v) && AGES.includes(v),
+  state: (v: unknown) =>
+    typeof v === "string" && v.length > 0 && INDIAN_STATES.includes(v as typeof INDIAN_STATES[number]),
 };
 
 export async function POST(
@@ -20,14 +27,17 @@ export async function POST(
     }
 
     const body = await req.json().catch(() => ({}));
-    const { criterionId } = body as { criterionId?: string };
-
-    if (!schema.criterionId(criterionId)) {
-      return NextResponse.json(
-        { error: "Select a prediction option" },
-        { status: 400 }
-      );
-    }
+    const {
+      criterionId,
+      comparison,
+      age,
+      state: stateValue,
+    } = body as {
+      criterionId?: string;
+      comparison?: "above" | "below";
+      age?: number;
+      state?: string;
+    };
 
     const { groupId } = await params;
 
@@ -50,10 +60,66 @@ export async function POST(
       );
     }
 
-    const belongs = group.criteria.some((c) => c.id === criterionId);
-    if (!belongs) {
+    let resolvedCriterionId: string;
+
+    if (schema.criterionId(criterionId)) {
+      const belongs = group.criteria.some((c) => c.id === criterionId);
+      if (!belongs) {
+        return NextResponse.json(
+          { error: "Invalid prediction option" },
+          { status: 400 }
+        );
+      }
+      resolvedCriterionId = criterionId;
+    } else if (schema.comparison(comparison) && schema.age(age)) {
+      const type = comparison === "above" ? "age_above" : "age_below";
+      const label =
+        comparison === "above"
+          ? `Mostly ${age} or older`
+          : `Mostly under ${age}`;
+      let criterion = group.criteria.find(
+        (c) => c.type === type && c.value === age
+      );
+      if (!criterion) {
+        const maxOrder =
+          group.criteria.length > 0
+            ? Math.max(...group.criteria.map((c) => c.order))
+            : -1;
+        criterion = await prisma.groupCriterion.create({
+          data: {
+            groupId,
+            label,
+            type,
+            value: age,
+            order: maxOrder + 1,
+          },
+        });
+      }
+      resolvedCriterionId = criterion.id;
+    } else if (schema.state(stateValue)) {
+      let criterion = group.criteria.find(
+        (c) => c.type === "majority_state" && c.valueStr === stateValue
+      );
+      if (!criterion) {
+        const maxOrder =
+          group.criteria.length > 0
+            ? Math.max(...group.criteria.map((c) => c.order))
+            : -1;
+        criterion = await prisma.groupCriterion.create({
+          data: {
+            groupId,
+            label: `Majority from ${stateValue}`,
+            type: "majority_state",
+            value: null,
+            valueStr: stateValue,
+            order: maxOrder + 1,
+          },
+        });
+      }
+      resolvedCriterionId = criterion.id;
+    } else {
       return NextResponse.json(
-        { error: "Invalid prediction option" },
+        { error: "Select a prediction option" },
         { status: 400 }
       );
     }
@@ -82,7 +148,7 @@ export async function POST(
     await prisma.member.update({
       where: { id: member.id },
       data: {
-        selectedCriterionId: criterionId,
+        selectedCriterionId: resolvedCriterionId,
         guessLockedAt: new Date(),
       },
     });

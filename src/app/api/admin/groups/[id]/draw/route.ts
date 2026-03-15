@@ -23,11 +23,8 @@ export async function POST(
         criteria: { orderBy: { order: "asc" } },
         members: {
           where: { paymentStatus: "CONFIRMED" },
-          select: {
-            id: true,
-            age: true,
-            gender: true,
-            selectedCriterionId: true,
+          include: {
+            user: { select: { state: true } },
           },
         },
       },
@@ -77,6 +74,11 @@ export async function POST(
           matches = count > n / 2;
         } else if (c.type === "majority_female") {
           const count = paid.filter((m) => m.gender === "FEMALE").length;
+          matches = count > n / 2;
+        } else if (c.type === "majority_state" && c.valueStr) {
+          const count = paid.filter(
+            (m) => m.user?.state != null && m.user.state === c.valueStr
+          ).length;
           matches = count > n / 2;
         }
         if (matches) winningCriterionIds.push(c.id);

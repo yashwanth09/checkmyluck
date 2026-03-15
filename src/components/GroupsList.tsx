@@ -23,6 +23,7 @@ type Group = {
   closesAt: string;
   memberCount: number;
   slotsLeft: number;
+  criteriaKind?: "age" | "state";
   criteria?: Criterion[];
   recentJoins?: RecentJoin[];
 };
@@ -155,19 +156,30 @@ export function GroupsList() {
           100,
           Math.round((g.memberCount / g.maxMembers) * 100)
         );
+        const showResultsOverlay =
+          g.slotsLeft === 0 && !isExpired && g.status !== "DRAW_DONE";
+        const resultsInTime = formatTimeLeft(g.closesAt).replace(/\s+left$/, "").toLowerCase();
+
         return (
           <div
             key={g.id}
-            className="group block rounded-2xl bg-gradient-to-br from-violet-50 to-fuchsia-50 p-[1px] shadow-sm transition hover:shadow-md"
+            className="group relative block rounded-2xl bg-gradient-to-br from-violet-50 to-fuchsia-50 p-[1px] shadow-sm transition hover:shadow-md"
           >
-            <div className="h-full rounded-2xl border border-zinc-200 bg-white p-5">
+            {showResultsOverlay && (
+              <div className="absolute inset-x-0 top-0 z-10 flex items-center justify-center rounded-t-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 px-4 py-3 text-center shadow-md">
+                <p className="text-sm font-semibold text-white">
+                  View results in {resultsInTime}
+                </p>
+              </div>
+            )}
+            <div className={`h-full rounded-2xl border border-zinc-200 bg-white p-5 ${showResultsOverlay ? "pt-14" : ""}`}>
               <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-xs">
                 <span className="inline-flex items-center gap-1 rounded-full bg-violet-100 px-2 py-0.5 font-medium text-violet-800">
                   <span className="text-[10px]">✨</span> Guess &amp; win
                 </span>
                 <span className="text-[11px] text-zinc-500">
-                  {isExpired ? "Time's up" : formatTimeLeft(g.closesAt)} •{" "}
-                  {g.slotsLeft} slots left
+                  {isExpired ? "Time's up" : formatTimeLeft(g.closesAt)}
+                  {g.slotsLeft > 0 && ` • ${g.slotsLeft} slots left`}
                 </span>
               </div>
               <div className="flex items-start justify-between gap-4">
@@ -189,18 +201,12 @@ export function GroupsList() {
                     <span className="text-[11px] text-zinc-500">
                       {g.memberCount} / {g.maxMembers} joined
                     </span>
-                    {g.criteria && g.criteria.length > 0 && (
-                      <span className="text-[11px] text-violet-600">
-                        {g.criteria.length} rule
-                        {g.criteria.length > 1 ? "s" : ""} to pick
+                    {g.criteriaKind && (
+                      <span className="text-[11px] font-medium text-violet-600">
+                        {g.criteriaKind === "age" ? "Guess the Age" : "Guess the State"}
                       </span>
                     )}
                   </div>
-                  {g.criteria && g.criteria.length > 0 && (
-                    <p className="mt-1 line-clamp-2 text-[11px] text-zinc-500">
-                      Pick one: {g.criteria.map((c) => c.label).join(", ")}
-                    </p>
-                  )}
                   <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-zinc-200">
                     <div
                       className="h-full rounded-full bg-violet-500 transition-all"

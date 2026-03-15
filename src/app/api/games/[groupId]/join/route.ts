@@ -106,7 +106,7 @@ export async function POST(
           userId: user.id,
           mobileNumber: user.phoneNumber,
           address: "Wallet player",
-          displayName: undefined,
+          displayName: user.name ?? undefined,
           bidCount: 1,
           totalAmount: entryFee,
           paymentStatus: PaymentStatus.CONFIRMED,

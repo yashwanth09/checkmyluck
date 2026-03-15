@@ -46,6 +46,7 @@ export async function GET() {
         drawDoneAt: g.drawDoneAt ? g.drawDoneAt.toISOString() : null,
         memberCount: g._count.members,
         slotsLeft: g.maxMembers - g._count.members,
+        criteriaKind: g.criteriaKind ?? undefined,
         criteria: g.criteria,
         recentJoins: g.members.map((m) => ({
           displayName: m.displayName?.trim() || "A member",

@@ -26,15 +26,8 @@ export async function GET(req: Request) {
         criteria: { orderBy: { order: "asc" } },
         members: {
           where: { paymentStatus: "CONFIRMED" },
-          select: {
-            id: true,
-            groupId: true,
-            userId: true,
-            age: true,
-            gender: true,
-            selectedCriterionId: true,
-            isBot: true,
-            guessLockedAt: true,
+          include: {
+            user: { select: { state: true } },
           },
         },
       },
@@ -78,6 +71,10 @@ export async function GET(req: Request) {
             count = participants.filter((m) => m.gender === "MALE").length;
           } else if (c.type === "majority_female") {
             count = participants.filter((m) => m.gender === "FEMALE").length;
+          } else if (c.type === "majority_state" && c.valueStr) {
+            count = participants.filter(
+              (m) => m.user?.state != null && m.user.state === c.valueStr
+            ).length;
           }
 
           if (count > n / 2) {

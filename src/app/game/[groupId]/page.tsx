@@ -143,11 +143,13 @@ export default async function GameLobbyPage({ params }: PageProps) {
               ) : (
                 <LockGuessClient
                   groupId={group.id}
+                  criteriaKind={group.criteriaKind ?? undefined}
                   criteria={group.criteria.map((c) => ({
                     id: c.id,
                     label: c.label,
                     type: c.type,
                     value: c.value ?? null,
+                    valueStr: c.valueStr ?? undefined,
                   }))}
                   initialSelectedId={myMember?.selectedCriterionId || null}
                   locked={myLocked}

@@ -20,6 +20,8 @@ model Group {
   closesAt    DateTime
   // Configurable game duration in minutes (used to compute closesAt for new groups).
   durationMinutes Int   @default(5)
+  // Display on group card: "Guess the Age" or "Guess the State" (no "Pick one: ..." list).
+  criteriaKind    String?  // "age" | "state"
   createdAt   DateTime @default(now())
   drawDoneAt  DateTime?
   winnerId    String?  // legacy: one winner; criteria-based draw uses Member.isWinner
@@ -33,14 +35,15 @@ model Group {
   @@index([createdAt])
 }
 
-// Winning criteria for this group (e.g. "Age above 30", "Majority male"). Users pick one when joining.
+// Winning criteria for this group (e.g. "Age above 30", "Majority from Maharashtra"). Users pick one when joining.
 model GroupCriterion {
   id        String   @id @default(cuid())
   groupId   String
   group     Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  label     String   // e.g. "Age above 30", "Majority male"
-  type      String   // age_above | age_below | majority_male | majority_female
+  label     String   // e.g. "Age above 30", "Majority from Maharashtra"
+  type      String   // age_above | age_below | majority_male | majority_female | majority_state
   value     Int?     // for age_above/age_below: threshold (e.g. 30)
+  valueStr  String?  // for majority_state: state name (e.g. "Maharashtra")
   order     Int      @default(0)
 
   members   Member[] @relation("SelectedCriterion")

@@ -26,16 +26,9 @@ export default function AdminGroupsPage() {
   const [slots, setSlots] = useState(10);
   const [bidAmount, setBidAmount] = useState(20);
   const [durationMins, setDurationMins] = useState(10);
-  const [criteria, setCriteria] = useState<Array<{ label: string; type: string; value: number | "" }>>([]);
+  const [criteriaKind, setCriteriaKind] = useState<"age" | "state">("age");
   const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-
-  const CRITERION_TYPES = [
-    { value: "age_above", label: "Age above" },
-    { value: "age_below", label: "Age below" },
-    { value: "majority_male", label: "Majority male" },
-    { value: "majority_female", label: "Majority female" },
-  ] as const;
 
   const fetchGroups = () => {
     setLoading(true);
@@ -81,13 +74,7 @@ export default function AdminGroupsPage() {
           maxMembers: slots,
           entryFee: bidAmount,
           durationMinutes: durationMins,
-          criteria: criteria
-            .filter((c) => c.label.trim().length > 0)
-            .map((c) => ({
-              label: c.label.trim(),
-              type: c.type,
-              value: c.type.startsWith("age_") && c.value !== "" ? Number(c.value) : undefined,
-            })),
+          criteriaKind,
         }),
       });
       const data = await res.json();
@@ -96,7 +83,6 @@ export default function AdminGroupsPage() {
         return;
       }
       setNewName("");
-      setCriteria([]);
       fetchGroups();
     } catch {
       setError("Network error");
@@ -188,70 +174,20 @@ export default function AdminGroupsPage() {
           </div>
 
           <div className="border-t border-slate-200 pt-3 dark:border-slate-700">
-            <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
-              Winning criteria (optional)
-            </p>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+              Winning criteria
+            </label>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Users pick one when joining. After the group fills, criteria that match the group (e.g. majority male) determine winners.
+              Shown on the group card as &quot;Guess the Age&quot; or &quot;Guess the State&quot;. Players pick one option when locking their guess.
             </p>
-            {criteria.map((c, i) => (
-              <div key={i} className="mt-2 flex flex-wrap items-center gap-2">
-                <input
-                  type="text"
-                  placeholder="e.g. Age above 30"
-                  value={c.label}
-                  onChange={(e) => {
-                    const next = [...criteria];
-                    next[i] = { ...next[i]!, label: e.target.value };
-                    setCriteria(next);
-                  }}
-                  className="min-w-[120px] rounded border border-slate-300 px-2 py-1.5 text-sm dark:border-slate-600 dark:bg-slate-800 dark:text-white"
-                />
-                <select
-                  value={c.type}
-                  onChange={(e) => {
-                    const next = [...criteria];
-                    next[i] = { ...next[i]!, type: e.target.value };
-                    setCriteria(next);
-                  }}
-                  className="rounded border border-slate-300 px-2 py-1.5 text-sm dark:border-slate-600 dark:bg-slate-800 dark:text-white"
-                >
-                  {CRITERION_TYPES.map((t) => (
-                    <option key={t.value} value={t.value}>{t.label}</option>
-                  ))}
-                </select>
-                {(c.type === "age_above" || c.type === "age_below") && (
-                  <input
-                    type="number"
-                    min={1}
-                    max={120}
-                    placeholder="Age"
-                    value={c.value === "" ? "" : c.value}
-                    onChange={(e) => {
-                      const next = [...criteria];
-                      const v = e.target.value;
-                      next[i] = { ...next[i]!, value: v === "" ? "" : Math.max(1, Math.min(120, Number(v))) };
-                      setCriteria(next);
-                    }}
-                    className="w-16 rounded border border-slate-300 px-2 py-1.5 text-sm dark:border-slate-600 dark:bg-slate-800 dark:text-white"
-                  />
-                )}
-                <button
-                  type="button"
-                  onClick={() => setCriteria(criteria.filter((_, j) => j !== i))}
-                  className="text-sm text-red-600 hover:underline dark:text-red-400"
-                >
-                  Remove
-                </button>
-              </div>
-            ))}
-            <button
-              type="button"
-              onClick={() => setCriteria([...criteria, { label: "", type: "age_above", value: 30 }])}
-              className="mt-2 text-sm text-violet-600 hover:underline dark:text-violet-400"
+            <select
+              value={criteriaKind}
+              onChange={(e) => setCriteriaKind(e.target.value as "age" | "state")}
+              className="mt-1 rounded border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800 dark:text-white"
             >
-              + Add criterion
-            </button>
+              <option value="age">Guess the Age</option>
+              <option value="state">Guess the State</option>
+            </select>
           </div>
 
           <p className="text-xs text-slate-500 dark:text-slate-400">

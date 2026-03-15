@@ -41,7 +41,7 @@ export default async function Home() {
               </span>
             </h1>
             <p className="mt-2 text-lg font-medium text-zinc-600 sm:text-xl">
-              Join a game, guess who most players will be, and share the prize pool if your prediction is right.
+              Guess their age or state. Win money if you're right.
             </p>
             <p className="mt-2 text-sm font-semibold italic text-violet-600 sm:text-base">
               Bid small. Guess smart. Win big.

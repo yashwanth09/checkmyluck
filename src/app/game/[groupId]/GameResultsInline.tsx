@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { formatRupees } from "@/lib/utils";
 
 type Criterion = {
@@ -37,8 +38,10 @@ type Props = {
 };
 
 export function GameResultsInline({ groupId, currentUserId }: Props) {
+  const router = useRouter();
   const [data, setData] = useState<WinnersResponse | null>(null);
   const [loading, setLoading] = useState(false);
+  const refreshedOnWin = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -97,6 +100,13 @@ export function GameResultsInline({ groupId, currentUserId }: Props) {
 
   const myPlayer = data.players.find((p) => p.userId === currentUserId);
   const isCurrentUserWinner = !!myPlayer?.isWinner && perWinner > 0;
+
+  useEffect(() => {
+    if (isCurrentUserWinner && !refreshedOnWin.current) {
+      refreshedOnWin.current = true;
+      router.refresh();
+    }
+  }, [isCurrentUserWinner, router]);
 
   return (
     <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 shadow-sm">

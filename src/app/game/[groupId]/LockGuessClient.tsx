@@ -1,27 +1,32 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { INDIAN_STATES } from "@/lib/constants";
 
 type Criterion = {
   id: string;
   label: string;
   type: string;
   value: number | null;
+  valueStr?: string | null;
 };
 
 type LockGuessClientProps = {
   groupId: string;
+  criteriaKind?: "age" | "state" | null;
   criteria: Criterion[];
   initialSelectedId: string | null;
   locked: boolean;
 };
 
 export function LockGuessClient(props: LockGuessClientProps) {
-  const { groupId, criteria, initialSelectedId, locked } = props;
+  const { groupId, criteriaKind, criteria, initialSelectedId, locked } = props;
   const [selected, setSelected] = useState<string | null>(initialSelectedId);
   const [isLocked, setIsLocked] = useState(locked);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const AGES = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100] as const;
 
   const ageCriteria = useMemo(
     () =>
@@ -31,17 +36,12 @@ export function LockGuessClient(props: LockGuessClientProps) {
     [criteria]
   );
 
-  const distinctAges = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          ageCriteria
-            .map((c) => c.value)
-            .filter((v): v is number => typeof v === "number")
-        )
-      ).sort((a, b) => a - b),
-    [ageCriteria]
+  const stateCriteria = useMemo(
+    () => criteria.filter((c) => c.type === "majority_state"),
+    [criteria]
   );
+
+  const useStateDropdown = (criteriaKind === "state" || stateCriteria.length > 0) && stateCriteria.length > 0;
 
   const [comparison, setComparison] = useState<"" | "above" | "below">(() => {
     const initial = criteria.find((c) => c.id === initialSelectedId);
@@ -53,7 +53,13 @@ export function LockGuessClient(props: LockGuessClientProps) {
 
   const [age, setAge] = useState<number | "">(() => {
     const initial = criteria.find((c) => c.id === initialSelectedId);
-    return initial?.value ?? "";
+    const v = initial?.value;
+    return v != null && AGES.includes(v) ? v : "";
+  });
+
+  const [selectedState, setSelectedState] = useState<string>(() => {
+    const initial = criteria.find((c) => c.id === initialSelectedId);
+    return initial?.valueStr ?? "";
   });
 
   function updateSelected(nextComparison: "" | "above" | "below", nextAge: number | "") {
@@ -65,7 +71,18 @@ export function LockGuessClient(props: LockGuessClientProps) {
     const crit = ageCriteria.find(
       (c) => c.type === type && c.value === nextAge
     );
-    setSelected(crit ? crit.id : null);
+    // Store criterion id if exists; otherwise we send comparison + age to API (find-or-create).
+    setSelected(crit ? crit.id : `age:${nextComparison}:${nextAge}`);
+  }
+
+  function updateSelectedState(nextState: string) {
+    setSelectedState(nextState);
+    if (!nextState) {
+      setSelected(null);
+      return;
+    }
+    const crit = stateCriteria.find((c) => c.valueStr === nextState);
+    setSelected(crit ? crit.id : `state:${nextState}`);
   }
 
   async function handleLock() {
@@ -73,10 +90,17 @@ export function LockGuessClient(props: LockGuessClientProps) {
     setError(null);
     setLoading(true);
     try {
+      const isAgeCombo = selected.startsWith("age:");
+      const isStateCombo = selected.startsWith("state:");
+      const body = isAgeCombo
+        ? { comparison: comparison || undefined, age: age === "" ? undefined : age }
+        : isStateCombo
+          ? { state: selected.slice(7) }
+          : { criterionId: selected };
       const res = await fetch(`/api/games/${groupId}/lock-guess`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ criterionId: selected }),
+        body: JSON.stringify(body),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -91,13 +115,31 @@ export function LockGuessClient(props: LockGuessClientProps) {
     }
   }
 
-  // If we don't have structured age criteria, fall back to simple buttons.
-  const useDropdown =
-    ageCriteria.length > 0 && distinctAges.length > 0;
+  // State: single dropdown. Age: comparison + age dropdown. Else: button list.
+  const useAgeDropdown = ageCriteria.length > 0 && !useStateDropdown;
 
   return (
     <div className="mt-4 space-y-3">
-      {useDropdown ? (
+      {useStateDropdown ? (
+        <div className="flex flex-wrap gap-3">
+          <div className="flex-1 min-w-[180px]">
+            <label className="block text-xs font-medium text-zinc-700">
+              Most players are from state
+            </label>
+            <select
+              disabled={isLocked}
+              className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20"
+              value={selectedState}
+              onChange={(e) => updateSelectedState(e.target.value)}
+            >
+              <option value="">Select state</option>
+              {INDIAN_STATES.map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      ) : useAgeDropdown ? (
         <div className="flex flex-wrap gap-3">
           <div className="flex-1 min-w-[120px]">
             <label className="block text-xs font-medium text-zinc-700">
@@ -134,7 +176,7 @@ export function LockGuessClient(props: LockGuessClientProps) {
               }}
             >
               <option value="">Select</option>
-              {distinctAges.map((a) => (
+              {AGES.map((a) => (
                 <option key={a} value={a}>
                   {a}
                 </option>

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { GroupStatus } from "@prisma/client";
-import { MAX_GROUPS_PER_DAY } from "@/lib/constants";
+import { MAX_GROUPS_PER_DAY, INDIAN_STATES } from "@/lib/constants";
 import { isAdmin } from "@/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
@@ -72,7 +72,7 @@ export async function POST(req: Request) {
       maxMembers: rawSlots,
       entryFee: rawFee,
       durationMinutes: rawDuration,
-      criteria: rawCriteria,
+      criteriaKind: rawCriteriaKind,
     } = body;
 
     if (!name || typeof name !== "string" || name.trim().length < 3) {
@@ -81,6 +81,11 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
+
+    const criteriaKind =
+      rawCriteriaKind === "age" || rawCriteriaKind === "state"
+        ? rawCriteriaKind
+        : null;
 
     const maxMembers =
       rawSlots != null && Number.isFinite(Number(rawSlots))
@@ -132,21 +137,21 @@ export async function POST(req: Request) {
     const now = new Date();
     const closesAt = new Date(now.getTime() + durationMinutes * 60 * 1000);
 
-    const criteriaList = Array.isArray(rawCriteria)
-      ? rawCriteria
-      : [];
-    const validTypes = ["age_above", "age_below", "majority_male", "majority_female"];
-    const criteriaData = criteriaList
-      .filter(
-        (c: { label?: string; type?: string; value?: number }) =>
-          c && typeof c.label === "string" && c.label.trim().length > 0 && validTypes.includes(String(c.type))
-      )
-      .map((c: { label: string; type: string; value?: number }, i: number) => ({
-        label: c.label.trim(),
-        type: c.type,
-        value: c.type?.startsWith("age_") && Number.isFinite(Number(c.value)) ? Number(c.value) : null,
+    let criteriaData: Array<{ label: string; type: string; value: number | null; valueStr: string | null; order: number }> = [];
+    if (criteriaKind === "age") {
+      criteriaData = [
+        { label: "Mostly under 35", type: "age_below", value: 35, valueStr: null, order: 0 },
+        { label: "Mostly 35 or older", type: "age_above", value: 35, valueStr: null, order: 1 },
+      ];
+    } else if (criteriaKind === "state") {
+      criteriaData = INDIAN_STATES.map((state, i) => ({
+        label: `Majority from ${state}`,
+        type: "majority_state",
+        value: null,
+        valueStr: state,
         order: i,
       }));
+    }
 
     const group = await prisma.group.create({
       data: {
@@ -154,6 +159,8 @@ export async function POST(req: Request) {
         maxMembers,
         entryFee,
         closesAt,
+        durationMinutes,
+        criteriaKind,
         criteria: criteriaData.length
           ? { create: criteriaData }
           : undefined,
@@ -166,11 +173,13 @@ export async function POST(req: Request) {
       group: {
         ...group,
         closesAt: group.closesAt.toISOString(),
+        criteriaKind: group.criteriaKind,
         criteria: group.criteria.map((c) => ({
           id: c.id,
           label: c.label,
           type: c.type,
           value: c.value,
+          valueStr: c.valueStr,
           order: c.order,
         })),
       },
