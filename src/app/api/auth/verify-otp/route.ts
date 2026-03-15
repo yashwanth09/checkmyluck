@@ -62,9 +62,12 @@ export async function POST(req: Request) {
       });
     }
 
+    const needsProfile = !user.name || !user.state || !user.dateOfBirth;
+
     const token = createSessionToken(user.id);
     const res = NextResponse.json({
       success: true,
+      needsProfile,
     });
 
     res.cookies.set(SESSION_COOKIE_NAME, token, {

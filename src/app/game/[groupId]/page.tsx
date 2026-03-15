@@ -3,6 +3,8 @@ import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { formatRupees } from "@/lib/utils";
 import { LockGuessClient } from "./LockGuessClient";
+import { GameTimer } from "./GameTimer";
+import { GameResultsInline } from "./GameResultsInline";
 
 export const dynamic = "force-dynamic";
 
@@ -50,15 +52,6 @@ export default async function GameLobbyPage({ params }: PageProps) {
 
   const totalJoined = group.members.length;
   const slotsLeft = group.maxMembers - totalJoined;
-  const closesAt = new Date(group.closesAt);
-  const now = new Date();
-  const timeLeftMs = closesAt.getTime() - now.getTime();
-
-  const minutesLeft = Math.max(0, Math.floor(timeLeftMs / 60000));
-  const secondsLeft = Math.max(
-    0,
-    Math.floor((timeLeftMs % 60000) / 1000)
-  ).toString().padStart(2, "0");
 
   const myLocked = !!myMember?.guessLockedAt;
 
@@ -81,7 +74,7 @@ export default async function GameLobbyPage({ params }: PageProps) {
           <div className="text-right">
             <p className="text-xs font-medium text-zinc-500">Time left</p>
             <p className="text-lg font-semibold text-zinc-900">
-              {minutesLeft}:{secondsLeft}
+              <GameTimer closesAt={group.closesAt.toString()} />
             </p>
             <p className="mt-1 text-xs text-zinc-600">
               {slotsLeft} slots left
@@ -114,15 +107,11 @@ export default async function GameLobbyPage({ params }: PageProps) {
                 className={`flex h-10 items-center justify-center rounded-lg border ${
                   m.userId === user.id
                     ? "border-violet-500 bg-violet-50 text-violet-800"
-                    : m.isBot
-                    ? "border-zinc-200 bg-zinc-50 text-zinc-500"
                     : "border-zinc-200 bg-white text-zinc-700"
                 }`}
               >
                 {m.userId === user.id
                   ? "You"
-                  : m.isBot
-                  ? "Bot"
                   : m.displayName?.slice(0, 6) || "Player"}
               </div>
             ))}
@@ -138,28 +127,36 @@ export default async function GameLobbyPage({ params }: PageProps) {
         </section>
 
         <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-          <p className="text-sm font-semibold text-zinc-900">
-            Lock your guess
-          </p>
-          <p className="mt-1 text-xs text-zinc-600">
-            Who do you think most players in this game will be?
-          </p>
+          {(group.status === "OPEN" || group.status === "FULL") && (
+            <>
+              <p className="text-sm font-semibold text-zinc-900">
+                Lock your guess
+              </p>
+              <p className="mt-1 text-xs text-zinc-600">
+                Who do you think most players in this game will be?
+              </p>
 
-          {group.criteria.length === 0 ? (
-            <p className="mt-3 text-sm text-amber-700">
-              This game has no prediction options configured yet.
-            </p>
-          ) : (
-            <LockGuessClient
-              groupId={group.id}
-              criteria={group.criteria.map((c) => ({
-                id: c.id,
-                label: c.label,
-              }))}
-              initialSelectedId={myMember?.selectedCriterionId || null}
-              locked={myLocked}
-            />
+              {group.criteria.length === 0 ? (
+                <p className="mt-3 text-sm text-amber-700">
+                  This game has no prediction options configured yet.
+                </p>
+              ) : (
+                <LockGuessClient
+                  groupId={group.id}
+                  criteria={group.criteria.map((c) => ({
+                    id: c.id,
+                    label: c.label,
+                    type: c.type,
+                    value: c.value ?? null,
+                  }))}
+                  initialSelectedId={myMember?.selectedCriterionId || null}
+                  locked={myLocked}
+                />
+              )}
+            </>
           )}
+
+          <GameResultsInline groupId={group.id} currentUserId={user.id} />
         </section>
       </main>
     </div>

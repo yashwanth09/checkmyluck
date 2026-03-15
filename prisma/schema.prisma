@@ -96,6 +96,8 @@ model User {
   name          String?
   age           Int?
   gender        String?  // MALE | FEMALE | OTHER
+  state         String?
+  dateOfBirth   DateTime?
   walletBalance Int      @default(0) // in rupees
   createdAt     DateTime @default(now())
 

@@ -50,7 +50,11 @@ export default function LoginPage() {
         setError(data.error || "Failed to verify OTP");
         return;
       }
-      router.push("/lobby");
+      if (data.needsProfile) {
+        router.push("/profile");
+      } else {
+        router.push("/lobby");
+      }
     } catch (err) {
       console.error(err);
       setError("Failed to verify OTP");
