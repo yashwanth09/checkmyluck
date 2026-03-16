@@ -1,30 +1,23 @@
 import Link from "next/link";
+import { prisma } from "@/lib/db";
 import { formatRupees } from "@/lib/utils";
 import { PlayAgainButton } from "./play-again";
 import { getCurrentUser } from "@/lib/auth";
 
-type WinnersResponse = {
-  group: {
+type Player = {
+  id: string;
+  userId: string | null;
+  displayName: string | null;
+  mobileMasked: string;
+  totalAmount: number;
+  bidCount: number;
+  isWinner: boolean;
+  criterion: {
     id: string;
-    name: string;
-    entryFee: number;
-    maxMembers: number;
-  };
-  players: Array<{
-    id: string;
-    userId: string | null;
-    displayName: string | null;
-    mobileMasked: string;
-    totalAmount: number;
-    bidCount: number;
-    isWinner: boolean;
-    criterion: {
-      id: string;
-      label: string;
-      type: string;
-      value: number | null;
-    } | null;
-  }>;
+    label: string;
+    type: string;
+    value: number | null;
+  } | null;
 };
 
 export default async function GroupResultsPage({
@@ -34,31 +27,18 @@ export default async function GroupResultsPage({
 }) {
   const { groupId } = await params;
 
-  let raw: unknown;
-  let ok = false;
-  try {
-    // Use a relative URL so this works both locally and on Vercel.
-    const res = await fetch(`/api/groups/${groupId}/winners`, {
-      cache: "no-store",
-    });
-    ok = res.ok;
-    raw = await res.json();
-  } catch {
-    ok = false;
-    raw = null;
-  }
+  const group = await prisma.group.findUnique({
+    where: { id: groupId },
+    include: {
+      members: {
+        where: { paymentStatus: "CONFIRMED" },
+        orderBy: { joinedAt: "asc" },
+        include: { selectedCriterion: true },
+      },
+    },
+  });
 
-  const data = raw as Partial<WinnersResponse> & { error?: unknown };
-  const hasValidShape =
-    data &&
-    typeof data === "object" &&
-    "group" in data &&
-    data.group &&
-    typeof data.group === "object" &&
-    "id" in data.group! &&
-    Array.isArray(data.players);
-
-  if (!ok || !hasValidShape || data.error) {
+  if (!group) {
     return (
       <div className="min-h-screen bg-zinc-50 text-zinc-900">
         <main className="mx-auto max-w-2xl px-4 py-10 sm:px-6 md:max-w-4xl lg:max-w-6xl">
@@ -70,10 +50,28 @@ export default async function GroupResultsPage({
     );
   }
 
-  const currentUser = await getCurrentUser();
+  const players: Player[] = group.members.map((m) => ({
+    id: m.id,
+    userId: m.userId,
+    displayName: m.displayName,
+    mobileMasked:
+      m.mobileNumber.length >= 4
+        ? `${m.mobileNumber.slice(0, 2)}******${m.mobileNumber.slice(-2)}`
+        : "**********",
+    totalAmount: m.totalAmount,
+    bidCount: m.bidCount,
+    isWinner: m.isWinner,
+    criterion: m.selectedCriterion
+      ? {
+          id: m.selectedCriterion.id,
+          label: m.selectedCriterion.label,
+          type: m.selectedCriterion.type,
+          value: m.selectedCriterion.value,
+        }
+      : null,
+  }));
 
-  const group = data.group as WinnersResponse["group"];
-  const players = data.players as WinnersResponse["players"];
+  const currentUser = await getCurrentUser();
   const winners = players.filter((p) => p.isWinner);
   const losers = players.filter((p) => !p.isWinner);
 
