@@ -34,7 +34,7 @@ export default async function GroupResultsPage({
 }) {
   const { groupId } = await params;
 
-  let data: WinnersResponse | null = null;
+  let raw: unknown;
   let ok = false;
   try {
     // Use a relative URL so this works both locally and on Vercel.
@@ -42,13 +42,23 @@ export default async function GroupResultsPage({
       cache: "no-store",
     });
     ok = res.ok;
-    data = (await res.json()) as WinnersResponse;
+    raw = await res.json();
   } catch {
     ok = false;
-    data = null;
+    raw = null;
   }
 
-  if (!ok || !data || (data as any).error) {
+  const data = raw as Partial<WinnersResponse> & { error?: unknown };
+  const hasValidShape =
+    data &&
+    typeof data === "object" &&
+    "group" in data &&
+    data.group &&
+    typeof data.group === "object" &&
+    "id" in data.group! &&
+    Array.isArray(data.players);
+
+  if (!ok || !hasValidShape || data.error) {
     return (
       <div className="min-h-screen bg-zinc-50 text-zinc-900">
         <main className="mx-auto max-w-2xl px-4 py-10 sm:px-6 md:max-w-4xl lg:max-w-6xl">
@@ -62,7 +72,8 @@ export default async function GroupResultsPage({
 
   const currentUser = await getCurrentUser();
 
-  const { group, players } = data;
+  const group = data.group as WinnersResponse["group"];
+  const players = data.players as WinnersResponse["players"];
   const winners = players.filter((p) => p.isWinner);
   const losers = players.filter((p) => !p.isWinner);
 
