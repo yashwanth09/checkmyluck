@@ -152,7 +152,7 @@ export function GameResultsInline({ groupId, currentUserId }: Props) {
             </p>
           </div>
         )}
-      <div className="mt-3 grid gap-3 text-xs md:grid-cols-2">
+        <div className="mt-3 grid gap-3 text-xs md:grid-cols-2">
         <div className="rounded-lg border border-emerald-200 bg-white/70 p-3">
           <p className="text-[11px] font-semibold uppercase tracking-widest text-emerald-700">
             Winners ({winners.length})
@@ -173,28 +173,29 @@ export function GameResultsInline({ groupId, currentUserId }: Props) {
             ))}
           </div>
         </div>
-        {losers.length > 0 && (
-          <div className="rounded-lg border border-emerald-200 bg-white/70 p-3">
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-emerald-700">
-              Others ({losers.length})
-            </p>
-            <div className="mt-2 space-y-1">
-              {losers.map((p) => (
-                <div key={p.id}>
-                  <p className="text-sm font-medium text-zinc-900">
-                    {p.displayName?.trim() ||
-                      `****${p.mobileMasked.slice(-2)}`}
-                  </p>
-                  {p.criterion && (
-                    <p className="text-[11px] text-zinc-600">
-                      Selected: {p.criterion.label}
+          {losers.length > 0 && (
+            <div className="rounded-lg border border-emerald-200 bg-white/70 p-3">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-emerald-700">
+                Others ({losers.length})
+              </p>
+              <div className="mt-2 space-y-1">
+                {losers.map((p) => (
+                  <div key={p.id}>
+                    <p className="text-sm font-medium text-zinc-900">
+                      {p.displayName?.trim() ||
+                        `****${p.mobileMasked.slice(-2)}`}
                     </p>
-                  )}
-                </div>
-              ))}
+                    {p.criterion && (
+                      <p className="text-[11px] text-zinc-600">
+                        Selected: {p.criterion.label}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </>
   );
