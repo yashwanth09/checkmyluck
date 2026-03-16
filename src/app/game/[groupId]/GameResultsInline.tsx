@@ -42,6 +42,7 @@ export function GameResultsInline({ groupId, currentUserId }: Props) {
   const [data, setData] = useState<WinnersResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const refreshedOnWin = useRef(false);
+   const [showWinModal, setShowWinModal] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -109,24 +110,48 @@ export function GameResultsInline({ groupId, currentUserId }: Props) {
   }, [isCurrentUserWinner, router]);
 
   return (
-    <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 shadow-sm">
-      <p className="text-sm font-semibold text-emerald-900">
-        Game result
-      </p>
-      <p className="mt-1 text-xs text-emerald-800">
-        Winners are those whose chosen criterion matched the final group.
-        Prize is split between all winners.
-      </p>
-      {isCurrentUserWinner && (
-        <div className="mt-3 rounded-xl bg-gradient-to-r from-emerald-500 via-lime-400 to-emerald-500 p-3 text-white shadow-md">
-          <p className="text-sm font-semibold">
-            🎉 You won {formatRupees(perWinner)}!
-          </p>
-          <p className="text-xs text-emerald-50">
-            Your wallet has been updated.
-          </p>
+    <>
+      {isCurrentUserWinner && showWinModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-sm rounded-2xl border border-emerald-200 bg-emerald-50 p-5 shadow-2xl">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-emerald-900">
+                  🎉 You won {formatRupees(perWinner)}!
+                </p>
+                <p className="mt-1 text-xs text-emerald-800">
+                  Your wallet has been updated. Check it in the lobby or wallet page.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowWinModal(false)}
+                className="ml-2 inline-flex h-7 w-7 items-center justify-center rounded-full border border-emerald-300 bg-white text-xs font-semibold text-emerald-700 hover:bg-emerald-50"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
         </div>
       )}
+      <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 shadow-sm">
+        <p className="text-sm font-semibold text-emerald-900">
+          Game result
+        </p>
+        <p className="mt-1 text-xs text-emerald-800">
+          Winners are those whose chosen criterion matched the final group.
+          Prize is split between all winners.
+        </p>
+        {isCurrentUserWinner && (
+          <div className="mt-3 rounded-xl bg-gradient-to-r from-emerald-500 via-lime-400 to-emerald-500 p-3 text-white shadow-md">
+            <p className="text-sm font-semibold">
+              🎉 You won {formatRupees(perWinner)}!
+            </p>
+            <p className="text-xs text-emerald-50">
+              Your wallet has been updated.
+            </p>
+          </div>
+        )}
       <div className="mt-3 grid gap-3 text-xs md:grid-cols-2">
         <div className="rounded-lg border border-emerald-200 bg-white/70 p-3">
           <p className="text-[11px] font-semibold uppercase tracking-widest text-emerald-700">
@@ -171,7 +196,7 @@ export function GameResultsInline({ groupId, currentUserId }: Props) {
           </div>
         )}
       </div>
-    </div>
+    </>
   );
 }
 
