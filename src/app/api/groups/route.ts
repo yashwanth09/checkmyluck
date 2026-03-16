@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { GroupStatus } from "@prisma/client";
 
-// Cache for 60s to handle high traffic (e.g. 5000 users/day) without overloading DB
-export const revalidate = 60;
+// Always serve fresh data so lobby/home reflect new groups and draws immediately.
+export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {

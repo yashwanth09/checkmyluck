@@ -38,7 +38,7 @@ export function GroupsList() {
 
   useEffect(() => {
     const load = () => {
-      fetch("/api/groups")
+      fetch("/api/groups", { cache: "no-store" })
         .then((r) => r.json())
         .then((data) => {
           if (data?.error) setError(String(data.error));
