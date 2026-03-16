@@ -33,14 +33,22 @@ export default async function GroupResultsPage({
   params: Promise<{ groupId: string }>;
 }) {
   const { groupId } = await params;
-  const base =
-    process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
-  const res = await fetch(`${base}/api/groups/${groupId}/winners`, {
-    cache: "no-store",
-  });
-  const data: WinnersResponse = await res.json();
 
-  if (!res.ok || (data as any).error) {
+  let data: WinnersResponse | null = null;
+  let ok = false;
+  try {
+    // Use a relative URL so this works both locally and on Vercel.
+    const res = await fetch(`/api/groups/${groupId}/winners`, {
+      cache: "no-store",
+    });
+    ok = res.ok;
+    data = (await res.json()) as WinnersResponse;
+  } catch {
+    ok = false;
+    data = null;
+  }
+
+  if (!ok || !data || (data as any).error) {
     return (
       <div className="min-h-screen bg-zinc-50 text-zinc-900">
         <main className="mx-auto max-w-2xl px-4 py-10 sm:px-6 md:max-w-4xl lg:max-w-6xl">
